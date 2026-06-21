@@ -3,6 +3,7 @@
 #include <unistd.h>
 
 #include "cartridge.h"
+#include "nes.h"
 
 void usage(const char *prog) {
     fprintf(stderr,
@@ -36,18 +37,25 @@ int main(int argc, char **argv) {
 
     const char *rom_path = argv[optind];
 
-    printf("ROM: %s\n", rom_path);
-
     cartridge cart = {0};
-    if (load_cartridge(&cart, rom_path) != 0) {
+    if (cartridge_load(&cart, rom_path) != 0) {
         fprintf(stderr, "invalid ROM file");
         return EXIT_FAILURE;
     }
 
-    uint8_t test = cart.mapper.cpu_read(&cart.mapper, 0x8002);
+    nes nes = {0};
+    if ((nes_init(&nes, &cart)) != 0) {
+        cartridge_free(&cart);
+        fprintf(stderr, "failed to initialize NES");
+        return EXIT_FAILURE;
+    }
 
-    int x;
+    nes_reset(&nes);
 
-    free_cartridge(&cart);
+    while (1) {
+        nes_step(&nes);
+    }
+
+    cartridge_free(&cart);
     return EXIT_SUCCESS;
 }

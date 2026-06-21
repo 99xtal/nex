@@ -1,0 +1,3 @@
+[submodule "external/lib6502"]
+	path = external/lib6502
+	url = https://github.com/99xtal/lib6502

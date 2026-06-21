@@ -2,7 +2,7 @@
 #include <string.h>
 #include "cartridge.h"
 
-int load_cartridge(cartridge *c, const char *path) {
+int cartridge_load(cartridge *c, const char *path) {
     if (!c || !path) {
         return -1;
     }
@@ -17,13 +17,13 @@ int load_cartridge(cartridge *c, const char *path) {
     uint8_t header[16];
     if (fread(header, 1, 16, f) != 16) {
         fclose(f);
-        free_cartridge(c);
+        cartridge_free(c);
         return -1;
     }
 
     if (memcmp(header, "NES\x1a", 4) != 0) {
         fclose(f);
-        free_cartridge(c);
+        cartridge_free(c);
         return -1;
     }
 
@@ -37,7 +37,7 @@ int load_cartridge(cartridge *c, const char *path) {
     if (c->has_trainer) {
         if (fseek(f, 512, SEEK_CUR) != 0) {
             fclose(f);
-            free_cartridge(c);
+            cartridge_free(c);
             return -1;
         }
     }
@@ -45,13 +45,13 @@ int load_cartridge(cartridge *c, const char *path) {
     c->prg_rom = malloc(c->prg_rom_size);
     if (!c->prg_rom) {
         fclose(f);
-        free_cartridge(c);
+        cartridge_free(c);
         return -1;
     }
 
     if (fread(c->prg_rom, 1, c->prg_rom_size, f) != c->prg_rom_size) {
         fclose(f);
-        free_cartridge(c);
+        cartridge_free(c);
         return -1;
     }
 
@@ -60,13 +60,13 @@ int load_cartridge(cartridge *c, const char *path) {
         c->chr_rom = malloc(c->chr_rom_size);
         if (!c->chr_rom) {
             fclose(f);
-            free_cartridge(c);
+            cartridge_free(c);
             return -1;
         }
 
         if (fread(c->chr_rom, 1, c->chr_rom_size, f) != c->chr_rom_size) {
             fclose(f);
-            free_cartridge(c);
+            cartridge_free(c);
             return -1;
         }
     } else {
@@ -83,7 +83,7 @@ int load_cartridge(cartridge *c, const char *path) {
         }
         default: {
             fclose(f);
-            free_cartridge(c);
+            cartridge_free(c);
             return -1;
         }
     }
@@ -92,7 +92,7 @@ int load_cartridge(cartridge *c, const char *path) {
     return 0;
 }
 
-void free_cartridge(cartridge *c) {
+void cartridge_free(cartridge *c) {
     if (!c) {
         return;
     }

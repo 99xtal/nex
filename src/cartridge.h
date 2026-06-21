@@ -28,8 +28,8 @@ typedef struct cartridge {
     bool uses_chr_ram;
 } cartridge;
 
-int load_cartridge(cartridge *c, const char *path);
+int cartridge_load(cartridge *c, const char *path);
 
-void free_cartridge(cartridge *c);
+void cartridge_free(cartridge *c);
 
 #endif // CARTRIDGE_H
