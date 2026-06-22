@@ -9,7 +9,7 @@
             "type": "lldb",
             "request": "launch",
             "program": "${workspaceFolder}/build/nex",
-            "args": ["${workspaceFolder}/roms/super_mario_bros.nes"],
+            "args": ["-t", "${workspaceFolder}/roms/super_mario_bros.nes"],
             "cwd": "${fileDirname}",
         },
     ]

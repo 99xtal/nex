@@ -32,5 +32,9 @@ $(OBJ_DIR):
 $(LIB6502):
 	$(MAKE) -C $(LIB6502_DIR)
 
+submodules:
+	$(MAKE) -C $(LIB6502_DIR) clean
+	$(MAKE) -C $(LIB6502_DIR)
+
 clean:
 	rm -rf $(BUILD_DIR)
