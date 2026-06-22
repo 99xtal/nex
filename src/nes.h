@@ -8,6 +8,8 @@ typedef struct {
     uint8_t internal_ram[0x0800];
     cpu6502 cpu;
     cartridge *cartridge;
+
+    int total_cpu_cycles;
 } nes;
 
 int nes_init(nes *n, cartridge *c);

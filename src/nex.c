@@ -16,32 +16,34 @@ void usage(const char *prog) {
     );
 }
 
-void print_trace(void *trace_ctx __attribute__((unused)), cpu6502_trace trace) {
-  char byte_str[10] = {0};
-  int pos = 0;
+void print_trace(void *trace_ctx, cpu6502_trace trace) {
+    nes *n = trace_ctx;
 
-  for (size_t i = 0; i < trace.bytes_count; i++) {
-    pos += snprintf(
-      byte_str + pos,
-      sizeof(byte_str) - pos,
-      "%02X ",
-      trace.bytes[i]
+    char byte_str[10] = {0};
+    int pos = 0;
+
+    for (size_t i = 0; i < trace.bytes_count; i++) {
+        pos += snprintf(
+        byte_str + pos,
+        sizeof(byte_str) - pos,
+        "%02X ",
+        trace.bytes[i]
+        );
+    }
+
+    printf(
+        "%04X  %-9s %-3s %-27s A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%d\n",
+        trace.PC,
+        byte_str,
+        trace.mnemonic,
+        trace.operand,
+        trace.A,
+        trace.X,
+        trace.Y,
+        trace.status,
+        trace.SP,
+        n->total_cpu_cycles + trace.cycles
     );
-  }
-
-  printf(
-    "%04X  %-9s %-3s %-27s A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%d\n",
-    trace.PC,
-    byte_str,
-    trace.mnemonic,
-    trace.operand,
-    trace.A,
-    trace.X,
-    trace.Y,
-    trace.status,
-    trace.SP,
-    trace.cycles
-  );
 }
 
 int main(int argc, char **argv) {
@@ -84,6 +86,7 @@ int main(int argc, char **argv) {
     }
     if (tracing) {
         nes.cpu.trace = print_trace;
+        nes.cpu.trace_ctx = &nes;
     }
 
     nes_reset(&nes);

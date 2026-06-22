@@ -55,7 +55,7 @@ int nes_init(nes *n, cartridge *c) {
     }
 
     memset(n, 0, sizeof(*n));
-
+    n->total_cpu_cycles = 0;
     n->cartridge = c;
 
     cpu6502_init(&n->cpu, nes_cpu_read, nes_cpu_write, n);
@@ -73,6 +73,7 @@ void nes_reset(nes *n) {
 
 void nes_step(nes *n) {
     int cpu_cycles = cpu6502_step(&n->cpu);
+    n->total_cpu_cycles += cpu_cycles;
 }
 
 void nes_free(nes *n) {
