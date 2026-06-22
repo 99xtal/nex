@@ -3,10 +3,12 @@
 
 #include <lib6502/6502.h>
 #include "cartridge.h"
+#include "ppu.h"
 
 typedef struct {
     uint8_t internal_ram[0x0800];
     cpu6502 cpu;
+    ppu2C02 ppu;
     cartridge *cartridge;
 
     int total_cpu_cycles;
