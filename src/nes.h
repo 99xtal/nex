@@ -6,9 +6,12 @@
 #include "ppu.h"
 
 typedef struct {
-    uint8_t internal_ram[0x0800];
     cpu6502 cpu;
+    uint8_t wram[0x0800];   // 2KB work RAM for CPU
+
     ppu2C02 ppu;
+    uint8_t vram[0x0800];   // 2KB video RAM for PPU
+
     cartridge *cartridge;
 
     int total_cpu_cycles;

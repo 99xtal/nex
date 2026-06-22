@@ -5,7 +5,7 @@ uint8_t nes_cpu_read(void *ctx, uint16_t addr) {
     nes *n = ctx;
 
     if (addr < 0x2000) {
-        return n->internal_ram[addr % 0x0800];
+        return n->wram[addr % 0x0800];
     }
 
     if (addr >= 0x2000 && addr < 0x4000) {
@@ -29,7 +29,7 @@ void nes_cpu_write(void *ctx, uint16_t addr, uint8_t value) {
     nes *n = ctx;
 
     if (addr < 0x2000) {
-        n->internal_ram[addr % 0x0800] = value;
+        n->wram[addr % 0x0800] = value;
     }
 
     if (addr >= 0x2000 && addr < 0x4000) {
@@ -52,8 +52,30 @@ void nes_cpu_write(void *ctx, uint16_t addr, uint8_t value) {
 uint8_t nes_ppu_read(void *ctx, uint16_t addr) {
     nes *n = ctx;
 
-    if (addr < 0x3F00) {
+    // CHROM addressing
+    if (addr < 0x2000) {
         return n->cartridge->mapper.ppu_read(&n->cartridge->mapper, addr);
+    }
+
+    // VRAM addressing
+    // mirror 0x2000-0x2FFF address space
+    if (addr >= 0x3000 && addr < 0x3F00) {
+        addr -= 0x1000;
+    }
+
+    if (addr >= 0x2000 && addr < 0x3000) {
+        uint16_t offset = (addr - 0x2000) % 0x1000; // address within nametable space
+        uint16_t table = offset / 0x400;    // which nametable you're in (1-4)
+        uint16_t inner = offset % 0x400;    // offset from current nametable (1-4)
+
+        NametableMirroring mirroring_mode = n->cartridge->nt_mirroring;
+        if (mirroring_mode == NT_MIRROR_HORIZONTAL) {
+            uint16_t vram_addr = (table / 2) * 0x400 + inner;
+            return n->vram[vram_addr];
+        } else if (mirroring_mode == NT_MIRROR_VERTICAL) {
+            uint16_t vram_addr = (table % 2) * 0x400 + inner;
+            return n->vram[vram_addr];
+        }
     }
 
     if (addr >= 0x3F00 && addr < 0x3FFF) {
@@ -64,8 +86,30 @@ uint8_t nes_ppu_read(void *ctx, uint16_t addr) {
 void nes_ppu_write(void *ctx, uint16_t addr, u_int8_t value) {
     nes *n = ctx;
 
-    if (addr < 0x3F00) {
+    // CHROM addressing
+    if (addr < 0x2000) {
         n->cartridge->mapper.ppu_write(&n->cartridge->mapper, addr, value);
+    }
+
+    // VRAM addressing
+    // mirror 0x2000-0x2FFF address space
+    if (addr >= 0x3000 && addr < 0x3F00) {
+        addr -= 0x1000;
+    }
+
+    if (addr >= 0x2000 && addr < 0x3000) {
+        uint16_t offset = (addr - 0x2000) % 0x1000; // address within nametable space
+        uint16_t table = offset / 0x400;    // which nametable you're in (1-4)
+        uint16_t inner = offset % 0x400;    // offset from current nametable (1-4)
+
+        NametableMirroring mirroring_mode = n->cartridge->nt_mirroring;
+        if (mirroring_mode == NT_MIRROR_HORIZONTAL) {
+            uint16_t vram_addr = (table / 2) * 0x400 + inner;
+            return n->vram[vram_addr] = value;
+        } else if (mirroring_mode == NT_MIRROR_VERTICAL) {
+            uint16_t vram_addr = (table % 2) * 0x400 + inner;
+            return n->vram[vram_addr] = value;
+        }
     }
 
     if (addr >= 0x3F00 && addr < 0x3FFF) {
