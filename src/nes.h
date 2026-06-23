@@ -14,7 +14,7 @@ typedef struct {
 
     cartridge *cartridge;
 
-    int total_cpu_cycles;
+    uint64_t total_cpu_cycles;
 } nes;
 
 int nes_init(nes *n, cartridge *c);
