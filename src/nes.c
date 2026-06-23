@@ -9,8 +9,7 @@ uint8_t nes_cpu_read(void *ctx, uint16_t addr) {
     }
 
     if (addr >= 0x2000 && addr < 0x4000) {
-        ppu2C02_cpu_read(&n->ppu, addr);
-        return 0;
+        return ppu2C02_cpu_read(&n->ppu, (addr - 0x2000) % 8);
     }
 
     if (addr >= 0x4000 && addr < 0x4018) {
@@ -80,7 +79,10 @@ uint8_t nes_ppu_read(void *ctx, uint16_t addr) {
 
     if (addr >= 0x3F00 && addr < 0x3FFF) {
         // TODO: internal palette RAM
+        return 0;
     }
+
+    return 0;
 }
 
 void nes_ppu_write(void *ctx, uint16_t addr, u_int8_t value) {
