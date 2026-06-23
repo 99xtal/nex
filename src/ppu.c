@@ -1,6 +1,10 @@
 #include "ppu.h"
 
 void ppu2C02_init(ppu2C02 *ppu, ppu2C02_read_fn read, ppu2C02_write_fn write, void *ctx) {
+    ppu->scanline = 0;
+    ppu->dot = 0;
+    ppu->frame = 0;
+
     ppu->read = read;
     ppu->write = write;
     ppu->ctx = ctx;
@@ -12,7 +16,16 @@ void ppu2C02_reset(ppu2C02 *ppu) {
 }
 
 void ppu2C02_step(ppu2C02 *ppu) {
-    return;
+    ppu->dot++;
+
+    if (ppu->dot > DOT_MAX) {
+        ppu->dot = 0;
+        ppu->scanline++;
+        if (ppu->scanline > SCANLINE_MAX) {
+            ppu->scanline = 0;
+            ppu->frame++;
+        }
+    }
 }
 
 uint8_t ppu2C02_cpu_read(ppu2C02 *ppu, uint16_t addr) {

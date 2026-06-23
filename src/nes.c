@@ -105,10 +105,12 @@ void nes_ppu_write(void *ctx, uint16_t addr, u_int8_t value) {
         NametableMirroring mirroring_mode = n->cartridge->nt_mirroring;
         if (mirroring_mode == NT_MIRROR_HORIZONTAL) {
             uint16_t vram_addr = (table / 2) * 0x400 + inner;
-            return n->vram[vram_addr] = value;
+            n->vram[vram_addr] = value;
+            return;
         } else if (mirroring_mode == NT_MIRROR_VERTICAL) {
             uint16_t vram_addr = (table % 2) * 0x400 + inner;
-            return n->vram[vram_addr] = value;
+            n->vram[vram_addr] = value;
+            return;
         }
     }
 
@@ -136,9 +138,15 @@ void nes_reset(nes *n) {
     if (!n) {
         return;
     }
-
-    cpu6502_reset(&n->cpu);
+    
     ppu2C02_reset(&n->ppu);
+
+    int cpu_cycles = cpu6502_reset(&n->cpu);
+    for (int i = 0; i < cpu_cycles * 3; i++) {
+        ppu2C02_step(&n->ppu);
+    }
+
+    n->total_cpu_cycles += cpu_cycles;
 }
 
 void nes_step(nes *n) {
