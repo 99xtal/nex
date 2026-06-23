@@ -11,6 +11,9 @@ void ppu2C02_init(ppu2C02 *ppu, ppu2C02_read_fn read, ppu2C02_write_fn write, vo
     ppu->dot = 0;
     ppu->frame = 0;
 
+    ppu->ctrl = 0;
+    ppu->status = 0;
+
     ppu->read = read;
     ppu->write = write;
     ppu->ctx = ctx;
@@ -50,6 +53,7 @@ void ppu2C02_step(ppu2C02 *ppu) {
 uint8_t ppu2C02_cpu_read(ppu2C02 *ppu, uint8_t reg) {
     switch (reg) {
         case 2: {
+            // PPUSTATUS
             ppu->w = 0;
             return ppu->status;
         }
@@ -59,5 +63,13 @@ uint8_t ppu2C02_cpu_read(ppu2C02 *ppu, uint8_t reg) {
 }
 
 void ppu2C02_cpu_write(ppu2C02 *ppu, uint8_t reg, uint8_t value) {
-    return;
+    switch (reg) {
+        case 0: {
+            // PPUCTRL
+            ppu->ctrl = value;
+            break;
+        }
+        default:
+            break;
+    }
 }

@@ -20,6 +20,25 @@ typedef struct ppu2C02 {
 
     // MMIO registers
     /**
+     * PPUCTRL (W)
+     * bit 7: Vblank NMI enable (0: off, 1: on)
+     * bit 6: PPU leader/follower select
+     *          (0: read backdrop from EXT pins,
+     *           1: output color on EXT pins)
+     * bit 5: Sprite size (0: 8x8 pixels, 1: 8x16 pixels)
+     * bit 4: Background pattern table addr (0: $0000, 1: $1000)
+     * bit 3: Sprite pattern table address for 8x8 sprites
+     *          (0: $0000, 1: $1000; ignored in 8x16 mode)
+     * bit 2: VRAM addr increment per CPU read/write of PPUDATA
+     *          (0: add 1, going accross;
+     *           1: add 32, going down)
+     * bits 1-0: Base nametable address
+     *          (0: $2000, 1: $2400
+     *           2: $2800, 3: $2C00)
+     */
+    uint8_t ctrl;
+    /**
+     * PPUSTATUS (R)
      * bit 7: Vblank flag, cleared on read
      * bit 6: Sprite 0 hit flag
      * bit 5: Sprite overflow flag

@@ -9,7 +9,9 @@ uint8_t nes_cpu_read(void *ctx, uint16_t addr) {
     }
 
     if (addr >= 0x2000 && addr < 0x4000) {
-        return ppu2C02_cpu_read(&n->ppu, (addr - 0x2000) % 8);
+        // PPU MMIO registers
+        uint8_t register_value = (addr - 0x2000) % 8;
+        return ppu2C02_cpu_read(&n->ppu, register_value);
     }
 
     if (addr >= 0x4000 && addr < 0x4018) {
@@ -32,7 +34,9 @@ void nes_cpu_write(void *ctx, uint16_t addr, uint8_t value) {
     }
 
     if (addr >= 0x2000 && addr < 0x4000) {
-        ppu2C02_cpu_write(&n->ppu, addr, value);
+        // PPU MMIO registers
+        uint8_t register_value = (addr - 0x2000) % 8;
+        ppu2C02_cpu_write(&n->ppu, register_value, value);
         return;
     }
 
