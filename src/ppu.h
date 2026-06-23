@@ -17,6 +17,7 @@ typedef struct ppu2C02 {
     int16_t scanline;   // 0-239 visible, 240 post-render, 241-260 vblank, 261 pre-render
     uint16_t dot;       // 0-340, aka PPU cycle within scanline
     uint64_t frame;
+    int nmi_pending;    // boolean for when NMI is queued by "enable Vblank NMI" control flag
 
     // MMIO registers
     /**

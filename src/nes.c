@@ -156,7 +156,14 @@ void nes_reset(nes *n) {
 }
 
 void nes_step(nes *n) {
-    int cpu_cycles = cpu6502_step(&n->cpu);
+    int cpu_cycles;
+
+    if (n->ppu.nmi_pending) {
+        n->ppu.nmi_pending = 0;
+        cpu_cycles = cpu6502_nmi(&n->cpu);
+    } else {
+        cpu_cycles = cpu6502_step(&n->cpu);
+    }
 
     // PPU ticks 3 times for every CPU cycle
     for (int i = 0; i < cpu_cycles * 3; i++) {
