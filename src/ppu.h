@@ -39,6 +39,18 @@ typedef struct ppu2C02 {
      */
     uint8_t ctrl;
     /**
+     * PPUMASK (W)
+     * bit 7: Emphasize blue
+     * bit 6: Emphasize green (red on PAL)
+     * bit 5: Emphasize red (green on PAL)
+     * bit 4: Enable sprite rendering
+     * bit 3: Enable background rendering
+     * bit 2: Show (1)/Hide (0) sprites in leftmost 8px of screen
+     * bit 1: Show (1)/Hide (0) background in leftmost 8px of screen
+     * bit 0: Greyscale (0: color, 1: greyscale)
+     */
+    uint8_t mask;
+    /**
      * PPUSTATUS (R)
      * bit 7: Vblank flag, cleared on read
      * bit 6: Sprite 0 hit flag
@@ -51,13 +63,13 @@ typedef struct ppu2C02 {
      * Rendering: used for scroll position
      * Non-rendering: current VRAM addr
      */
-    uint8_t v;
+    uint16_t v;
     /**
      * Rendering: starting coarse-x scroll for next scanline
      * and starting y scroll for screen
      * Non-rendering: scroll or VRAM addr before transfer to 'v'
      */
-    uint8_t t;
+    uint16_t t;
     /**
      * Rendering: fine-x position of current scroll
      */
@@ -68,6 +80,11 @@ typedef struct ppu2C02 {
      * w=0 (first write), w=1 (second write)
      */
     uint8_t w;
+
+    uint8_t oam[0x100]; // Object Attribute Memory
+    uint8_t oam_addr;   // $2003 (OAMADDR MMIO register)
+
+    uint8_t data_buffer; // for PPUDATA reads
 
     // callbacks for PPU address-space reads/writes: $0000-$3FFF
     ppu2C02_read_fn read;

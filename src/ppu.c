@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "ppu.h"
 
 typedef enum {
@@ -16,12 +18,7 @@ typedef enum {
 } StatusFlag;
 
 void ppu2C02_init(ppu2C02 *ppu, ppu2C02_read_fn read, ppu2C02_write_fn write, void *ctx) {
-    ppu->scanline = 0;
-    ppu->dot = 0;
-    ppu->frame = 0;
-
-    ppu->ctrl = 0;
-    ppu->status = 0;
+    memset(ppu, 0, sizeof(*ppu));
 
     ppu->read = read;
     ppu->write = write;
@@ -29,7 +26,7 @@ void ppu2C02_init(ppu2C02 *ppu, ppu2C02_read_fn read, ppu2C02_write_fn write, vo
     return;
 }
 
-void ppu2C02_reset(ppu2C02 *ppu) {
+void ppu2C02_reset(ppu2C02 *ppu __attribute((unused))) {
     return;
 }
 
@@ -70,6 +67,25 @@ uint8_t ppu2C02_cpu_read(ppu2C02 *ppu, uint8_t reg) {
             ppu->w = 0;
             return ppu->status;
         }
+        case 4: {
+            // OAMDATA
+            return ppu->oam[ppu->oam_addr];
+        }
+        case 7: {
+            uint8_t result;
+
+            if (ppu->v >= 0x3F00) {
+                // palette reads are immediate
+                result = ppu->read(ppu->ctx, ppu->v);
+                ppu->data_buffer = ppu->read(ppu->ctx, ppu->v - 0x1000);
+            } else {
+                result = ppu->data_buffer;
+                ppu->data_buffer = ppu->read(ppu->ctx, ppu->v);
+            }
+
+            ppu->v += (ppu->ctrl & PPUCTRL_VRAM_INC) ? 32 : 1;
+            return result;
+        }
         default:
             return 0;
     }
@@ -89,6 +105,57 @@ void ppu2C02_cpu_write(ppu2C02 *ppu, uint8_t reg, uint8_t value) {
                 ppu->nmi_pending = 1;
             }
             
+            break;
+        }
+        case 1: {
+            // PPUMASK
+            ppu->mask = value;
+            break;
+        }
+        case 3: {
+            // OAMADDR
+            ppu->oam_addr = value;
+            break;
+        }
+        case 4: {
+            // OAMDATA
+            ppu->oam[ppu->oam_addr] = value;
+            ppu->oam_addr++;
+            break;
+        }
+        case 5: {
+            // PPUSCROLL
+            if (!ppu->w) {
+                // first write
+                ppu->t = (ppu->t & 0xFFE0) | (value >> 3); // coarse x
+                ppu->x = value & 0x07; // fine x
+                ppu->w = 1;
+            } else {
+                // second write
+                ppu->t = (ppu->t & 0x8FFF) | ((value & 0x07) << 12); // fine y
+                ppu->t = (ppu->t & 0xFC1F) | ((value & 0xF8) << 12); // coarse y
+                ppu->w = 0;
+            }
+            break;
+        }
+        case 6: {
+            // PPUADDR
+            if (!ppu->w) {
+                // first write
+                ppu->t = (ppu->t & 0x00FF) | ((value & 0x3F) << 8);
+                ppu->w = 1;
+            } else {
+                // second write
+                ppu->t = (ppu->t & 0xFF00) | value;
+                ppu->v = ppu->t;
+                ppu->w = 0;
+            }
+            break;
+        }
+        case 7: {
+            // PPUDATA
+            ppu->write(ppu->ctx, ppu->v, value);
+            ppu->v += (ppu->ctrl & PPUCTRL_VRAM_INC) ? 32 : 1;
             break;
         }
         default:
