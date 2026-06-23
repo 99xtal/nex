@@ -64,8 +64,10 @@ uint8_t ppu2C02_cpu_read(ppu2C02 *ppu, uint8_t reg) {
     switch (reg) {
         case 2: {
             // PPUSTATUS
+            uint8_t result = ppu->status;
+            ppu->status &= ~PPUSTATUS_VBLANK;
             ppu->w = 0;
-            return ppu->status;
+            return result;
         }
         case 4: {
             // OAMDATA
@@ -155,7 +157,7 @@ void ppu2C02_cpu_write(ppu2C02 *ppu, uint8_t reg, uint8_t value) {
         case 7: {
             // PPUDATA
             ppu->write(ppu->ctx, ppu->v, value);
-            ppu->v += (ppu->ctrl & PPUCTRL_VRAM_INC) ? 32 : 1;
+            ppu->v = (ppu->v + ((ppu->ctrl & PPUCTRL_VRAM_INC) ? 32 : 1)) & 0x3FFF;
             break;
         }
         default:
