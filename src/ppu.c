@@ -3,6 +3,13 @@
 
 #include "ppu.h"
 
+#define VRAM_START_ADDR 0x2000
+
+void update_bg_fetch_pipeline(ppu2C02 *ppu);
+void increment_scanline_position(ppu2C02 *ppu);
+bool rendering_enabled(ppu2C02 *ppu);
+uint16_t get_current_nametable_address(ppu2C02 *ppu);
+
 typedef enum {
     PPUCTRL_NMI_ENABLE      = (1 << 7),
     PPUCTRL_LF_SELECT       = (1 << 6),
@@ -219,7 +226,8 @@ void ppu2C02_cpu_write(ppu2C02 *ppu, uint8_t reg, uint8_t value) {
 void update_bg_fetch_pipeline(ppu2C02 *ppu) {
     switch ((ppu->dot - 1) % 8) {
         case 0: {
-            // fetch nametable byte
+            uint16_t nt_addr = get_current_nametable_address(ppu);
+            ppu->bg_tile = ppu->read(ppu->ctx, nt_addr);
             break;
         }
         case 2: {
@@ -260,4 +268,27 @@ void increment_scanline_position(ppu2C02 *ppu) {
  */
 bool rendering_enabled(ppu2C02 *ppu) {
     return (ppu->mask & (PPUMASK_ENABLE_SPRITES | PPUMASK_ENABLE_BG)) != 0;
+}
+
+/**
+ * Fetch the tile index from the current nametable position.
+ *
+ * The address is derived from the current VRAM address (v),
+ * which encodes the nametable selection, coarse X, and
+ * coarse Y scroll position.
+ */
+uint8_t get_nametable_byte(ppu2C02 *ppu) {
+    uint16_t nt_address = (ppu->v & 0x0FFF) + VRAM_START_ADDR;
+    return ppu->read(ppu->ctx, nt_address);
+}
+
+/**
+ * Fetch the address of the current nametable position.
+ *
+ * The address is derived from the current VRAM address (v),
+ * which encodes the nametable selection, coarse X, and
+ * coarse Y scroll position.
+ */
+uint16_t get_current_nametable_address(ppu2C02 *ppu) {
+    return VRAM_START_ADDR | (ppu->v & 0x0FFF);
 }
