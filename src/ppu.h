@@ -84,6 +84,8 @@ typedef struct ppu2C02 {
     uint8_t oam[0x100]; // Object Attribute Memory
     uint8_t oam_addr;   // $2003 (OAMADDR MMIO register)
 
+    uint8_t palette_ram[0x20];
+
     uint8_t data_buffer; // for PPUDATA reads
 
     // callbacks for PPU address-space reads/writes: $0000-$3FFF

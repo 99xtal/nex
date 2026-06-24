@@ -82,8 +82,8 @@ uint8_t nes_ppu_read(void *ctx, uint16_t addr) {
     }
 
     if (addr >= 0x3F00 && addr < 0x3FFF) {
-        // TODO: internal palette RAM
-        return 0;
+        uint16_t palette_ram_addr = (addr - 0x3F00) % 0x20;
+        return n->ppu.palette_ram[palette_ram_addr];
     }
 
     return 0;
@@ -121,7 +121,8 @@ void nes_ppu_write(void *ctx, uint16_t addr, u_int8_t value) {
     }
 
     if (addr >= 0x3F00 && addr < 0x3FFF) {
-        // TODO: internal palette RAM
+        uint16_t palette_ram_addr = (addr - 0x3F00) % 0x20;
+        n->ppu.palette_ram[palette_ram_addr] = value;
     }
 }
 
