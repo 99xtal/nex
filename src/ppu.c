@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <string.h>
 
 #include "ppu.h"
@@ -10,6 +11,11 @@ typedef enum {
     PPUCTRL_SPRITE_PTABLE   = (1 << 3),
     PPUCTRL_VRAM_INC        = (1 << 2),
 } ControlFlag;
+
+typedef enum {
+    PPUMASK_ENABLE_SPRITES  = (1 << 4),
+    PPUMASK_ENABLE_BG       = (1 << 3),
+} MaskFlag;
 
 typedef enum {
     PPUSTATUS_VBLANK             = (1 << 7),
@@ -31,12 +37,40 @@ void ppu2C02_reset(ppu2C02 *ppu __attribute((unused))) {
 }
 
 void ppu2C02_step(ppu2C02 *ppu) {
+    bool visible_scanline = ppu->scanline >= 0 && ppu->scanline <= 239;
+    bool visible_dot = ppu->dot >= 1 && ppu->dot <= 256;
+    bool prerender_scanline = ppu->scanline == PRERENDER_SCANLINE;
+    bool fetch_scanline = visible_scanline || prerender_scanline;
+
     // Pre-render phase
-    if (ppu->scanline == PRERENDER_SCANLINE) {
+    if (prerender_scanline) {
         if (ppu->dot == 1) {
             // clear status flags
             ppu->status &= ~(PPUSTATUS_VBLANK | PPUSTATUS_SPRITE_OVERFLOW | PPUSTATUS_SPRITE_0_HIT);
             ppu->nmi_pending = 0;
+        }
+    }
+
+    if (visible_scanline && visible_dot) {
+        // render pixel from shift register value
+    }
+
+    if (rendering_enabled(ppu) && fetch_scanline) {
+        if (visible_dot || (ppu->dot >= 321 && ppu->dot <= 336)) {
+            update_bg_fetch_pipeline(ppu);
+            // update shift registers
+        }
+
+        if (ppu->dot == 256) {
+            // update vertical (v)
+        }
+
+        if (ppu->dot == 257) {
+            // copy horizontal scroll (v -> t)
+        }
+
+        if (prerender_scanline && ppu->dot >= 280 && ppu->dot <= 304) {
+            // copy vertical scroll (v -> t)
         }
     }
 
@@ -48,16 +82,7 @@ void ppu2C02_step(ppu2C02 *ppu) {
         }
     }
 
-    // increment state
-    ppu->dot++;
-    if (ppu->dot > DOT_MAX) {
-        ppu->dot = 0;
-        ppu->scanline++;
-        if (ppu->scanline > SCANLINE_MAX) {
-            ppu->scanline = 0;
-            ppu->frame++;
-        }
-    }
+    increment_scanline_position(ppu);
 }
 
 uint8_t ppu2C02_cpu_read(ppu2C02 *ppu, uint8_t reg) {
@@ -163,4 +188,76 @@ void ppu2C02_cpu_write(ppu2C02 *ppu, uint8_t reg, uint8_t value) {
         default:
             break;
     }
+}
+
+/**
+ * Progresses background tile fetching pipeline based
+ * on current PPU cycle/scanline position.
+ * 
+ * The process takes 8 cycles to complete, with 2 cycles
+ * per each phase:
+ *  1. Fetch the nametable byte (pattern table tile) from VRAM
+ *     based on current scanline position
+ *  2. Fetch attribute byte (selected palette) from VRAM
+ *     based on scanline position
+ *  3. Fetch the "low" byte (Bitplane of LSBs of palette color indices for tile row)
+ *     of the selected pattern table tile.
+ *  4. Fetch the "high" byte (Bitplane of MSBs of palette color indices for tile row)
+ *     of the selected pattern table tile
+ * 
+ *  Low and high bits will be combined to get the color palette
+ *  index of the current pixel during rendering.
+ *      
+ *      L: 0 1 1 0 0 1 1 1
+ *      H: 1 0 1 1 0 1 0 1
+ *      R: 2 1 3 2 0 3 1 3
+ * 
+ *  This pipeline fetches the data needed for the
+ *  next 8 background pixels and loads it into
+ *  temporary latches / shift registers.
+ */
+void update_bg_fetch_pipeline(ppu2C02 *ppu) {
+    switch ((ppu->dot - 1) % 8) {
+        case 0: {
+            // fetch nametable byte
+            break;
+        }
+        case 2: {
+            // fetch attribute byte
+            break;
+        }
+        case 4: {
+            // fetch low pattern byte
+            break;
+        }
+        case 6: {
+            // fetch high pattern byte
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+}
+
+/**
+ * Update current scanline, dot, and frame
+ */
+void increment_scanline_position(ppu2C02 *ppu) {
+    ppu->dot++;
+    if (ppu->dot > DOT_MAX) {
+        ppu->dot = 0;
+        ppu->scanline++;
+        if (ppu->scanline > SCANLINE_MAX) {
+            ppu->scanline = 0;
+            ppu->frame++;
+        }
+    }
+}
+
+/**
+ * Determine if rendering is enabled by CPU based on PPUMASK flags
+ */
+bool rendering_enabled(ppu2C02 *ppu) {
+    return (ppu->mask & (PPUMASK_ENABLE_SPRITES | PPUMASK_ENABLE_BG)) != 0;
 }

@@ -19,6 +19,12 @@ typedef struct ppu2C02 {
     uint64_t frame;
     int nmi_pending;    // boolean for when NMI is queued by "enable Vblank NMI" control flag
 
+    // BG data fetching pipeline state
+    uint8_t bg_tile;            // Current nametable byte (pattern table index)
+    uint8_t bg_palette;         // Current attribute table bits (palette index)
+    uint8_t bg_pattern_low;     // Bitplane 0 of palette color indices of pattern tile row
+    uint8_t bg_pattern_high;    // Bitplane 1 of palette color indices of pattern tile row
+
     // MMIO registers
     /**
      * PPUCTRL (W)
