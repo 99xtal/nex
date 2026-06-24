@@ -7,7 +7,6 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
 add_subdirectory(external/lib6502)
-add_subdirectory(external/SDL)
 
 file(GLOB NEX_SOURCES CONFIGURE_DEPENDS
     src/*.c
@@ -23,7 +22,6 @@ target_include_directories(nex PRIVATE
 
 target_link_libraries(nex PRIVATE
     6502
-    SDL3::SDL3
 )
 
 target_compile_options(nex PRIVATE

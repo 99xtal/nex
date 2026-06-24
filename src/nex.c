@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <SDL3/SDL.h>
-#include <SDL3/SDL_main.h>
 
 #include "cartridge.h"
 #include "nes.h"
@@ -50,7 +48,7 @@ void print_trace(void *trace_ctx, cpu6502_trace trace) {
     );
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char **argv) {
     int opt;
     int tracing = 0;
 
@@ -76,24 +74,6 @@ int main(int argc, char *argv[]) {
 
     const char *rom_path = argv[optind];
 
-    // SDL initialization
-    if (!SDL_Init(SDL_INIT_VIDEO)) {
-        fprintf(stderr, "Error: failed to initialize SDL");
-        return EXIT_FAILURE;
-    }
-
-    SDL_Window *window = SDL_CreateWindow(
-        "nex",
-        640,
-        480,
-        0
-    );
-    if (!window) {
-        fprintf(stderr, "Error: window creation failed", SDL_GetError());
-        SDL_Quit();
-        return EXIT_FAILURE;
-    }
-
     cartridge cart = {0};
     if (cartridge_load(&cart, rom_path) != 0) {
         fprintf(stderr, "invalid ROM file");
@@ -113,26 +93,7 @@ int main(int argc, char *argv[]) {
 
     nes_reset(&nes);
 
-    // program loop
-    int running = 1;
-
-    while (running) {
-        // poll events
-        SDL_Event event;
-
-        while (SDL_PollEvent(&event)) {
-            switch (event.type) {
-                case SDL_EVENT_QUIT:
-                    running = 0;
-                    break;
-                case SDL_EVENT_KEY_DOWN:
-                    if (event.key.key == SDLK_ESCAPE) {
-                        running = 0;
-                    }
-                    break;
-            }
-        }
-        
+    while (1) {
         nes_step(&nes);
     }
 
