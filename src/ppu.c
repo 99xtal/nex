@@ -4,11 +4,16 @@
 #include "ppu.h"
 
 #define VRAM_START_ADDR 0x2000
+#define NT_SIZE 0x03C0 // size of nametable ()
 
 void update_bg_fetch_pipeline(ppu2C02 *ppu);
 void increment_scanline_position(ppu2C02 *ppu);
 bool rendering_enabled(ppu2C02 *ppu);
 uint16_t get_current_nametable_address(ppu2C02 *ppu);
+uint8_t get_bg_palette_number(ppu2C02 *ppu);
+uint16_t get_current_attribute_address(ppu2C02 *ppu);
+uint16_t coarse_x(ppu2C02 *ppu);
+uint16_t coarse_y(ppu2C02 *ppu);
 
 typedef enum {
     PPUCTRL_NMI_ENABLE      = (1 << 7),
@@ -231,7 +236,7 @@ void update_bg_fetch_pipeline(ppu2C02 *ppu) {
             break;
         }
         case 2: {
-            // fetch attribute byte
+            ppu->bg_palette = get_bg_palette_number(ppu);
             break;
         }
         case 4: {
@@ -291,4 +296,67 @@ uint8_t get_nametable_byte(ppu2C02 *ppu) {
  */
 uint16_t get_current_nametable_address(ppu2C02 *ppu) {
     return VRAM_START_ADDR | (ppu->v & 0x0FFF);
+}
+
+/**
+ * Get the palette index of the current background tile
+ */
+uint8_t get_bg_palette_number(ppu2C02 *ppu) {
+    uint16_t at_addr = get_current_attribute_address(ppu);
+    uint8_t attribute_byte = ppu->read(ppu->ctx, at_addr);
+
+    uint16_t cx = coarse_x(ppu);
+    uint16_t cy = coarse_y(ppu);
+
+    // Select which 2-bit quadrant within the attribute byte applies.
+    // Each quadrant covers a 2x2 tile area.
+    uint8_t shift =
+        ((cy & 0x02) << 1)
+        | (cx & 0x02);
+
+    return (attribute_byte >> shift) & 0x03;
+}
+
+/**
+ * Returns the address of the attribute byte corresponding
+ * to the current VRAM position (v).
+ *
+ * The attribute table is an 8x8 grid located at the end of
+ * each nametable. Each attribute byte provides palette
+ * information for a 4x4 tile region, so the current coarse
+ * X and coarse Y tile coordinates are divided by 4 to find
+ * the attribute table entry covering the current tile.
+ */
+uint16_t get_current_attribute_address(ppu2C02 *ppu) {
+    uint16_t nametable_start_addr = VRAM_START_ADDR | (ppu->v & 0x0C00);
+    uint16_t attribute_table_start = nametable_start_addr + NT_SIZE;
+
+    uint16_t attr_x = coarse_x(ppu) / 4;
+    uint16_t attr_y = coarse_y(ppu) / 4;
+
+    uint16_t attribute_address = attribute_table_start + (attr_y * 8) + attr_x;
+    return attribute_address;
+}
+
+
+/**
+ * Returns the coarse X scroll component from the
+ * current VRAM address (v).
+ *
+ * Coarse X is the horizontal tile position within
+ * the current nametable (0-31).
+ */
+uint16_t coarse_x(ppu2C02 *ppu) {
+    return ppu->v & 0x001F;
+}
+
+/**
+ * Returns the coarse Y scroll component from the
+ * current VRAM address (v).
+ * 
+ * Coarse Y is the vertical tile position within
+ * the current nametable (0-29)
+ */
+uint16_t coarse_y(ppu2C02 *ppu) {
+    return (ppu->v >> 5) & 0x001F;
 }
