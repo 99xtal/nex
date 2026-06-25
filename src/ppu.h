@@ -26,6 +26,11 @@ typedef struct ppu2C02 {
     uint8_t bg_pattern_low;     // Bitplane 0 of palette color indices of pattern tile row
     uint8_t bg_pattern_high;    // Bitplane 1 of palette color indices of pattern tile row
 
+    uint16_t bg_palette_low_shift;
+    uint16_t bg_palette_high_shift;
+    uint16_t bg_pattern_low_shift;
+    uint16_t bg_pattern_high_shift;
+
     // MMIO registers
     /**
      * PPUCTRL (W)

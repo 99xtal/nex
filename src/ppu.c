@@ -233,6 +233,8 @@ void ppu2C02_cpu_write(ppu2C02 *ppu, uint8_t reg, uint8_t value) {
 void update_bg_fetch_pipeline(ppu2C02 *ppu) {
     switch ((ppu->dot - 1) % 8) {
         case 0: {
+            load_shift_registers(ppu);
+
             uint16_t nt_addr = get_current_nametable_address(ppu);
             ppu->bg_tile = ppu->read(ppu->ctx, nt_addr);
             break;
@@ -254,6 +256,20 @@ void update_bg_fetch_pipeline(ppu2C02 *ppu) {
             break;
         }
     }
+}
+
+void load_shift_registers(ppu2C02 *ppu) {
+    ppu->bg_pattern_low_shift =
+        (ppu->bg_pattern_low_shift & 0xFF00) | ppu->bg_pattern_low;
+    ppu->bg_pattern_high_shift =
+        (ppu->bg_pattern_high_shift & 0xFF00) | ppu->bg_pattern_high;
+
+    ppu->bg_palette_low_shift =
+        (ppu->bg_palette_low_shift & 0xFF00)
+        | ((ppu->bg_palette & 0x01 == 1) ? 0xFF : 0x00);
+    ppu->bg_palette_high_shift =
+        (ppu->bg_palette_high_shift & 0xFF00)
+        | ((ppu->bg_palette & 0x2 == 1) ? 0xFF : 0x00);
 }
 
 /**
