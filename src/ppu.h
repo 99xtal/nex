@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 
+#define SCREEN_WIDTH 256
+#define SCREEN_HEIGHT 240
+
 #define SCANLINE_MAX 261
 #define DOT_MAX 340
 
@@ -11,6 +14,7 @@
 
 typedef uint8_t (*ppu2C02_read_fn)(void *ctx, uint16_t address);
 typedef void (*ppu2C02_write_fn)(void *ctx, uint16_t address, uint8_t value);
+typedef void (*ppu2C02_render_fn)(void *render_ctx, int x, int y, uint8_t color_index);
 
 typedef struct ppu2C02 {
     // PPU state
@@ -111,9 +115,20 @@ typedef struct ppu2C02 {
     ppu2C02_read_fn read;
     ppu2C02_write_fn write;
     void *ctx;
+
+    // "frame ready" render callback
+    ppu2C02_render_fn render_pixel;
+    void *render_ctx;
 } ppu2C02;
 
-void ppu2C02_init(ppu2C02 *ppu, ppu2C02_read_fn read, ppu2C02_write_fn write, void *ctx);
+void ppu2C02_init(
+    ppu2C02 *ppu,
+    ppu2C02_read_fn read,
+    ppu2C02_write_fn write,
+    void *ctx,
+    ppu2C02_render_fn render,
+    void *render_ctx
+);
 
 void ppu2C02_reset(ppu2C02 *ppu);
 

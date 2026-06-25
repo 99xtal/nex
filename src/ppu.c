@@ -12,6 +12,7 @@
 void update_bg_fetch_pipeline(ppu2C02 *ppu);
 void load_shift_registers(ppu2C02 *ppu);
 void increment_scanline_position(ppu2C02 *ppu);
+void render_bg_pixel(ppu2C02 *ppu);
 bool rendering_enabled(ppu2C02 *ppu);
 uint16_t get_current_nametable_address(ppu2C02 *ppu);
 uint8_t get_bg_palette_number(ppu2C02 *ppu);
@@ -45,12 +46,22 @@ typedef enum {
     PPUSTATUS_SPRITE_OVERFLOW    = (1 << 5)
 } StatusFlag;
 
-void ppu2C02_init(ppu2C02 *ppu, ppu2C02_read_fn read, ppu2C02_write_fn write, void *ctx) {
+void ppu2C02_init(
+    ppu2C02 *ppu,
+    ppu2C02_read_fn read,
+    ppu2C02_write_fn write,
+    void *ctx,
+    ppu2C02_render_fn render,
+    void *render_ctx
+) {
     memset(ppu, 0, sizeof(*ppu));
 
     ppu->read = read;
     ppu->write = write;
     ppu->ctx = ctx;
+
+    ppu->render_pixel = render;
+    ppu->render_ctx = render_ctx;
     return;
 }
 
@@ -74,7 +85,7 @@ void ppu2C02_step(ppu2C02 *ppu) {
     }
 
     if (visible_scanline && visible_dot) {
-        // render pixel from shift register value
+        render_bg_pixel(ppu);
     }
 
     if (rendering_enabled(ppu) && fetch_scanline) {
@@ -212,6 +223,34 @@ void ppu2C02_cpu_write(ppu2C02 *ppu, uint8_t reg, uint8_t value) {
         }
         default:
             break;
+    }
+}
+
+void render_bg_pixel(ppu2C02 *ppu) {
+    int x = ppu->dot - 1;
+    int y = ppu->scanline;
+
+    uint16_t mux = 0x8000 >> ppu->x;
+
+    uint8_t p0 = (ppu->bg_pattern_low_shift & mux) ? 1 : 0;
+    uint8_t p1 = (ppu->bg_pattern_high_shift & mux) ? 1 : 0;
+    uint8_t pattern_pixel = (p1 << 1) | p0;
+
+    uint8_t a0 = (ppu->bg_palette_low_shift & mux) ? 1 : 0;
+    uint8_t a1 = (ppu->bg_palette_high_shift & mux) ? 1 : 0;
+    uint8_t palette = (a1 << 1) | a0;
+
+    uint16_t palette_addr;
+
+    if (pattern_pixel == 0) {
+        palette_addr = 0x3F00; // universal bg color
+    } else {
+        palette_addr = 0x3F00 + (palette * 4) + pattern_pixel;
+    }
+
+    uint8_t color_index = ppu->read(ppu->ctx, palette_addr);
+    if (ppu->render_pixel) {
+        ppu->render_pixel(ppu->render_ctx, x, y, color_index);
     }
 }
 

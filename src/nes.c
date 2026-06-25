@@ -126,7 +126,7 @@ void nes_ppu_write(void *ctx, uint16_t addr, u_int8_t value) {
     }
 }
 
-int nes_init(nes *n, cartridge *c) {
+int nes_init(nes *n, cartridge *c, ppu2C02_render_fn render_fn, void *render_ctx) {
     if (!n || !c) {
         return -1;
     }
@@ -136,7 +136,7 @@ int nes_init(nes *n, cartridge *c) {
     n->cartridge = c;
 
     cpu6502_init(&n->cpu, nes_cpu_read, nes_cpu_write, n);
-    ppu2C02_init(&n->ppu, nes_ppu_read, nes_ppu_write, n);
+    ppu2C02_init(&n->ppu, nes_ppu_read, nes_ppu_write, n, render_fn, render_ctx);
 
     return 0;
 }
