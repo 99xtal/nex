@@ -22,6 +22,7 @@ typedef struct ppu2C02 {
     // BG data fetching pipeline state
     uint8_t bg_tile;            // Current nametable byte (pattern table index)
     uint8_t bg_palette;         // Current attribute table bits (palette index)
+    uint16_t bg_pattern_addr;   // Address of current background tile from pattern table
     uint8_t bg_pattern_low;     // Bitplane 0 of palette color indices of pattern tile row
     uint8_t bg_pattern_high;    // Bitplane 1 of palette color indices of pattern tile row
 
@@ -67,6 +68,13 @@ typedef struct ppu2C02 {
     // internal registers
     /**
      * Rendering: used for scroll position
+     * 
+     * yyy NN YYYYY XXXXX
+     * ||| || ||||| +++++-- coarse X scroll
+     * ||| || +++++-------- coarse Y scroll
+     * ||| ++-------------- nametable select
+     * +++----------------- fine Y scroll
+     * 
      * Non-rendering: current VRAM addr
      */
     uint16_t v;

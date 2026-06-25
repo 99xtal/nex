@@ -12,8 +12,10 @@ bool rendering_enabled(ppu2C02 *ppu);
 uint16_t get_current_nametable_address(ppu2C02 *ppu);
 uint8_t get_bg_palette_number(ppu2C02 *ppu);
 uint16_t get_current_attribute_address(ppu2C02 *ppu);
+uint16_t get_bg_pattern_address(ppu2C02 *ppu, uint16_t tile_num);
 uint16_t coarse_x(ppu2C02 *ppu);
 uint16_t coarse_y(ppu2C02 *ppu);
+uint16_t fine_y(ppu2C02 *ppu);
 
 typedef enum {
     PPUCTRL_NMI_ENABLE      = (1 << 7),
@@ -240,11 +242,12 @@ void update_bg_fetch_pipeline(ppu2C02 *ppu) {
             break;
         }
         case 4: {
-            // fetch low pattern byte
+            ppu->bg_pattern_addr = get_bg_pattern_address(ppu, ppu->bg_tile);
+            ppu->bg_pattern_low = ppu->read(ppu->ctx, ppu->bg_pattern_addr + fine_y(ppu));
             break;
         }
         case 6: {
-            // fetch high pattern byte
+            ppu->bg_pattern_high = ppu->read(ppu->ctx, ppu->bg_pattern_addr + fine_y(ppu) + 8);
             break;
         }
         default: {
@@ -338,6 +341,16 @@ uint16_t get_current_attribute_address(ppu2C02 *ppu) {
     return attribute_address;
 }
 
+/**
+ * Returns the address of the pattern table tile of the
+ * current nametable tile.
+ */
+uint16_t get_bg_pattern_address(ppu2C02 *ppu, uint16_t tile_num) {
+    uint16_t pattern_table_base = 0;
+    uint16_t pattern_table_num = (ppu->ctrl >> 4) & 0x01;
+
+    return pattern_table_base + (pattern_table_num * 0x1000) + (tile_num << 4);
+}
 
 /**
  * Returns the coarse X scroll component from the
@@ -359,4 +372,15 @@ uint16_t coarse_x(ppu2C02 *ppu) {
  */
 uint16_t coarse_y(ppu2C02 *ppu) {
     return (ppu->v >> 5) & 0x001F;
+}
+
+/**
+ * Returns the fine Y scroll component from the
+ * current VRAM address (v)
+ * 
+ * Fine Y is the vertical dot position within
+ * the current nametable
+ */
+uint16_t fine_y(ppu2C02 *ppu) {
+    return (ppu->v >> 12) & 0x07;
 }
