@@ -1,60 +1,32 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
-#include "cartridge.h"
-#include "nes.h"
+#include "commands.h"
 
 void usage(const char *prog) {
     fprintf(stderr,
-        "Usage: %s [OPTIONS] ROM\n"
+        "Usage: %s [options...] <command>\n"
+        "  -v     Show version\n"
+        "  -h     Show usage\n"
         "\n"
-        "OPTIONS:\n"
-        "  -t       Enable tracing\n"
-        "  -h       Show this help message\n",
+        "Commands\n"
+        "  run    Run an ROM in the emulator\n"
         prog
     );
 }
 
-void print_trace(void *trace_ctx, cpu6502_trace trace) {
-    nes *n = trace_ctx;
-
-    char byte_str[10] = {0};
-    int pos = 0;
-
-    for (size_t i = 0; i < trace.bytes_count; i++) {
-        pos += snprintf(
-        byte_str + pos,
-        sizeof(byte_str) - pos,
-        "%02X ",
-        trace.bytes[i]
-        );
-    }
-
-    printf(
-        "%04X  %-9s %-3s %-27s A:%02X X:%02X Y:%02X P:%02X SP:%02X PPU:%3d,%3d CYC:%llu\n",
-        trace.PC,
-        byte_str,
-        trace.mnemonic,
-        trace.operand,
-        trace.A,
-        trace.X,
-        trace.Y,
-        trace.status,
-        trace.SP,
-        n->ppu.scanline,
-        n->ppu.dot,
-        n->total_cpu_cycles
-    );
-}
-
-void render_pixel(void *render_ctx, int x, int y, uint8_t color_index) {
-    uint8_t *framebuffer = render_ctx;
-
-    framebuffer[(y * SCREEN_WIDTH) + x] = color_index;
-}
+static Command commands[] = {
+    { .name = "run", .execute = cmd_run },
+};
 
 int main(int argc, char **argv) {
+    if (argc < 2) {
+        usage(argv[0]);
+        return EXIT_SUCCESS;
+    }
+
     int opt;
     int tracing = 0;
 
@@ -72,39 +44,14 @@ int main(int argc, char **argv) {
         }
     }
 
-    if (optind >= argc) {
-        fprintf(stderr, "Error: missing ROM file\n");
-        usage(argv[0]);
-        return EXIT_FAILURE;
+    for (size_t i = 0; i < sizeof(commands) / sizeof(commands[0]); i++) {
+        Command cmd = commands[i];
+
+        if (strcmp(argv[1], cmd.name) == 0) {
+            return cmd.execute(argc - 1, argv + 1);
+        }
     }
 
-    const char *rom_path = argv[optind];
-
-    cartridge cart = {0};
-    if (cartridge_load(&cart, rom_path) != 0) {
-        fprintf(stderr, "invalid ROM file");
-        return EXIT_FAILURE;
-    }
-
-    uint8_t framebuffer[256 * 240];
-
-    nes nes = {0};
-    if ((nes_init(&nes, &cart, render_pixel, framebuffer)) != 0) {
-        cartridge_free(&cart);
-        fprintf(stderr, "failed to initialize NES");
-        return EXIT_FAILURE;
-    }
-    if (tracing) {
-        nes.cpu.trace = print_trace;
-        nes.cpu.trace_ctx = &nes;
-    }
-
-    nes_reset(&nes);
-
-    while (1) {
-        nes_step(&nes);
-    }
-
-    cartridge_free(&cart);
-    return EXIT_SUCCESS;
+    usage(argv[0]);
+    fprintf(stderr, "\nUnknown command: \%s\n", argv[1]);
 }

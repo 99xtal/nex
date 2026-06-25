@@ -1,0 +1,116 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+#include "cartridge.h"
+#include "commands.h"
+#include "nes.h"
+
+/**
+ * "run"
+ */
+void usage_run(const char *prog) {
+    fprintf(stderr,
+        "Usage: %s [options...] [ROM]\n"
+        "  -t     Enable tracing logs\n"
+        "  -h     Show usage\n"
+        "\n",
+        prog
+    );
+}
+
+void print_trace(void *trace_ctx, cpu6502_trace trace);
+void render_pixel(void *render_ctx, int x, int y, uint8_t color_index);
+
+int cmd_run(int argc, char **argv) {
+    int opt;
+    int tracing = 0;
+
+    while ((opt = getopt(argc, argv, "ht")) != -1) {
+        switch (opt) {
+            case 't':
+                tracing = 1;
+                break;
+            case 'h':
+                usage_run(argv[0]);
+                return EXIT_SUCCESS;
+            default:
+                usage_run(argv[0]);
+                return EXIT_FAILURE;
+        }
+    }
+
+    if (optind >= argc) {
+        usage_run(argv[0]);
+        fprintf(stderr, "\nMissing ROM file\n");
+        return EXIT_FAILURE;
+    }
+
+    const char *rom_path = argv[optind];
+
+    cartridge cart = {0};
+    if (cartridge_load(&cart, rom_path) != 0) {
+        fprintf(stderr, "Invalid ROM file");
+        return EXIT_FAILURE;
+    }
+
+    uint8_t framebuffer[256 * 240];
+
+    nes nes = {0};
+    if ((nes_init(&nes, &cart, render_pixel, framebuffer)) != 0) {
+        cartridge_free(&cart);
+        fprintf(stderr, "Failed to initialize NES");
+        return EXIT_FAILURE;
+    }
+    if (tracing) {
+        nes.cpu.trace = print_trace;
+        nes.cpu.trace_ctx = &nes;
+    }
+
+    nes_reset(&nes);
+
+    while (1) {
+        nes_step(&nes);
+    }
+
+    cartridge_free(&cart);
+    return EXIT_SUCCESS;
+}
+
+void print_trace(void *trace_ctx, cpu6502_trace trace) {
+    nes *n = trace_ctx;
+
+    char byte_str[10] = {0};
+    int pos = 0;
+
+    for (size_t i = 0; i < trace.bytes_count; i++) {
+        pos += snprintf(
+        byte_str + pos,
+        sizeof(byte_str) - pos,
+        "%02X ",
+        trace.bytes[i]
+        );
+    }
+
+    printf(
+        "%04X  %-9s %-3s %-27s A:%02X X:%02X Y:%02X P:%02X SP:%02X PPU:%3d,%3d CYC:%llu\n",
+        trace.PC,
+        byte_str,
+        trace.mnemonic,
+        trace.operand,
+        trace.A,
+        trace.X,
+        trace.Y,
+        trace.status,
+        trace.SP,
+        n->ppu.scanline,
+        n->ppu.dot,
+        n->total_cpu_cycles
+    );
+}
+
+void render_pixel(void *render_ctx, int x, int y, uint8_t color_index) {
+    uint8_t *framebuffer = render_ctx;
+
+    framebuffer[(y * SCREEN_WIDTH) + x] = color_index;
+}
