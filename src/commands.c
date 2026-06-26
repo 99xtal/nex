@@ -125,6 +125,7 @@ void usage_test(const char *prog) {
         "  --start-pc ADDR          Set CPU program counter to ADDR\n"
         "\n"
         "Pass conditions:\n"
+        "  --pass-pc ADDR       Pass when CPU reaches program counter\n"
         "\n"
         "Failure conditions:\n"
         "\n"
@@ -137,6 +138,7 @@ void usage_test(const char *prog) {
 
 enum {
     OPT_START_PC,
+    OPT_PASS_PC,
     OPT_TIMEOUT_CYCLES,
 };
 
@@ -145,11 +147,13 @@ uint64_t parse_uint64(const char *str);
 
 static struct option test_options[] = {
     { "start-pc",       required_argument, NULL, OPT_START_PC },
+    { "pass-pc",        required_argument, NULL, OPT_PASS_PC },
     { "timeout-cycles", required_argument, NULL, OPT_START_PC },
 };
 
 typedef struct TestConfig {
     uint16_t start_pc;
+    uint16_t pass_pc;
     uint64_t timeout_cycles;
 } TestConfig;
 
@@ -164,8 +168,13 @@ int cmd_test(int argc, char **argv) {
                 config.start_pc = parse_addr(optarg);
                 break;
             }
+            case OPT_PASS_PC: {
+                config.pass_pc = parse_addr(optarg);
+                break;
+            }
             case OPT_TIMEOUT_CYCLES: {
                 config.timeout_cycles = parse_uint64(optarg);
+                break;
             }
             default:
                 break;
@@ -205,6 +214,10 @@ int cmd_test(int argc, char **argv) {
     }
 
     while (nes.total_cpu_cycles < config.timeout_cycles) {
+        if (config.pass_pc && nes.cpu.PC == config.pass_pc) {
+            printf("PASS: Program reached PC 0x%04d\n", nes.cpu.PC);
+            return EXIT_SUCCESS;
+        }
         nes_step(&nes);
     }
 
