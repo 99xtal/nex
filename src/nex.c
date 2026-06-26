@@ -12,13 +12,14 @@ void usage(const char *prog) {
         "  -h     Show usage\n"
         "\n"
         "Commands\n"
-        "  run    Run an ROM in the emulator\n"
+        "  run    Run an ROM in the emulator\n",
         prog
     );
 }
 
 static Command commands[] = {
     { .name = "run", .execute = cmd_run },
+    { .name = "test", .execute = cmd_test },
 };
 
 int main(int argc, char **argv) {
@@ -28,13 +29,11 @@ int main(int argc, char **argv) {
     }
 
     int opt;
-    int tracing = 0;
-
-    while ((opt = getopt(argc, argv, "ht")) != -1) {
+    while ((opt = getopt(argc, argv, "vh")) != -1) {
         switch (opt) {
-            case 't':
-                tracing = 1;
-                break;
+            case 'v':
+                printf("0.1.0\n");
+                return EXIT_SUCCESS;
             case 'h':
                 usage(argv[0]);
                 return EXIT_SUCCESS;
@@ -53,5 +52,5 @@ int main(int argc, char **argv) {
     }
 
     usage(argv[0]);
-    fprintf(stderr, "\nUnknown command: \%s\n", argv[1]);
+    fprintf(stderr, "\nUnknown command: %s\n", argv[1]);
 }
