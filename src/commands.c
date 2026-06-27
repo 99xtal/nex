@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
+#include <getopt.h>
 
 #include "cartridge.h"
 #include "commands.h"
@@ -11,7 +11,7 @@
  */
 void usage_run(const char *prog) {
     fprintf(stderr,
-        "Usage: %s [options...] [ROM]\n"
+        "nex %s [options...] [ROM]\n"
         "  -t     Enable tracing logs\n"
         "  -h     Show usage\n"
         "\n",
@@ -113,4 +113,146 @@ void render_pixel(void *render_ctx, int x, int y, uint8_t color_index) {
     uint8_t *framebuffer = render_ctx;
 
     framebuffer[(y * SCREEN_WIDTH) + x] = color_index;
+}
+
+/**
+ * "test"
+ */
+void usage_test(const char *prog) {
+    fprintf(stderr,
+        "nex %s [options...] [ROM]\n"
+        "Environment:\n"
+        "  --start-pc ADDR          Set CPU program counter to ADDR\n"
+        "\n"
+        "Pass conditions:\n"
+        "  --pass-pc ADDR       Pass when CPU reaches program counter\n"
+        "\n"
+        "Failure conditions:\n"
+        "\n"
+        "Timeouts:\n"
+        "  --timeout-cycles N       Fail after N CPU cycles\n"
+        "\n",
+        prog
+    );
+}
+
+enum {
+    OPT_START_PC,
+    OPT_PASS_PC,
+    OPT_TIMEOUT_CYCLES,
+};
+
+uint16_t parse_addr(const char *str);
+uint64_t parse_uint64(const char *str);
+
+static struct option test_options[] = {
+    { "start-pc",       required_argument, NULL, OPT_START_PC },
+    { "pass-pc",        required_argument, NULL, OPT_PASS_PC },
+    { "timeout-cycles", required_argument, NULL, OPT_START_PC },
+};
+
+typedef struct TestConfig {
+    uint16_t start_pc;
+    uint16_t pass_pc;
+    uint64_t timeout_cycles;
+} TestConfig;
+
+int cmd_test(int argc, char **argv) {
+    int opt;
+    TestConfig config;
+    config.timeout_cycles = 1000000;
+
+    while ((opt = getopt_long(argc, argv, "", test_options, NULL)) != -1) {
+        switch (opt) {
+            case OPT_START_PC: {
+                config.start_pc = parse_addr(optarg);
+                break;
+            }
+            case OPT_PASS_PC: {
+                config.pass_pc = parse_addr(optarg);
+                break;
+            }
+            case OPT_TIMEOUT_CYCLES: {
+                config.timeout_cycles = parse_uint64(optarg);
+                break;
+            }
+            default:
+                break;
+        }
+    }
+
+    if (optind >= argc) {
+        usage_test(argv[0]);
+        fprintf(stderr, "\nMissing ROM file\n");
+        return EXIT_FAILURE;
+    }
+
+    // validate params
+
+    // init emulator
+    const char *rom_path = argv[optind];
+
+    cartridge cart = {0};
+    if (cartridge_load(&cart, rom_path) != 0) {
+        fprintf(stderr, "Invalid ROM file");
+        return EXIT_FAILURE;
+    }
+
+    uint8_t framebuffer[256 * 240];
+
+    nes nes = {0};
+    if ((nes_init(&nes, &cart, render_pixel, framebuffer)) != 0) {
+        cartridge_free(&cart);
+        fprintf(stderr, "Failed to initialize NES");
+        return EXIT_FAILURE;
+    }
+
+    nes_reset(&nes);
+
+    if (config.start_pc) {
+        nes.cpu.PC = config.start_pc;
+    }
+
+    while (nes.total_cpu_cycles < config.timeout_cycles) {
+        if (config.pass_pc && nes.cpu.PC == config.pass_pc) {
+            printf("PASS: Program reached PC 0x%04d\n", nes.cpu.PC);
+            return EXIT_SUCCESS;
+        }
+        nes_step(&nes);
+    }
+
+    printf("FAIL: Timeout after %llu cycles\n", nes.total_cpu_cycles);
+
+    cartridge_free(&cart);
+    return EXIT_SUCCESS;
+}
+
+uint16_t parse_addr(const char *str) {
+    char *end;
+    unsigned long value = strtoul(str, &end, 16);
+
+    if (*end != '\0') {
+        fprintf(stderr, "invalid address: %s\n", str);
+        exit(EXIT_FAILURE);
+    }
+
+    if (value > 0xFFFF) {
+        fprintf(stderr, "address out of range: %s\n", str);
+        exit(EXIT_FAILURE);
+    }
+
+    return (uint16_t)value;
+}
+
+uint64_t parse_uint64(const char *str) {
+    char *end;
+
+    int value = strtoul(str, &end, 10);
+
+    if (*end != '\0') {
+        fprintf(stderr, "invalid number: %s\n", str);
+        exit(EXIT_FAILURE);
+    }
+
+    return (uint64_t)value;
 }
