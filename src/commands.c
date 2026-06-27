@@ -1,10 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <getopt.h>
 
 #include "cartridge.h"
 #include "commands.h"
 #include "nes.h"
+#include "test_config.h"
 
 /**
  * "run"
@@ -122,15 +124,15 @@ void usage_test(const char *prog) {
     fprintf(stderr,
         "nex %s [options...] [ROM]\n"
         "Environment:\n"
-        "  --start-pc ADDR          Set CPU program counter to ADDR\n"
+        "  --start-pc ADDR          Set initial CPU program counter\n"
         "\n"
-        "Pass conditions:\n"
-        "  --pass-pc ADDR       Pass when CPU reaches program counter\n"
-        "\n"
-        "Failure conditions:\n"
-        "\n"
-        "Timeouts:\n"
+        "Test control:\n"
+        "  --stop-pc ADDR           Stop when CPU reaches ADDR\n"
+        "  --assert-mem             Assert memory when stopped, e.g. 0002=00\n"
         "  --timeout-cycles N       Fail after N CPU cycles\n"
+        "\n"
+        "Other options:\n"
+        "  --trace                  Enable instruction tracing\n"
         "\n",
         prog
     );
@@ -138,42 +140,67 @@ void usage_test(const char *prog) {
 
 enum {
     OPT_START_PC,
-    OPT_PASS_PC,
+    OPT_STOP_PC,
+    OPT_ASSERT_MEM,
     OPT_TIMEOUT_CYCLES,
+    OPT_TRACE,
 };
 
-uint16_t parse_addr(const char *str);
-uint64_t parse_uint64(const char *str);
+void evaluate_assertions(nes *nes, TestConfig *config);
+int parse_addr(const char *str, uint16_t *addr);
+int parse_uint64(const char *str, uint64_t *value);
+int parse_assert_mem_exp(const char *str, uint16_t *addr, uint8_t *value);
 
 static struct option test_options[] = {
     { "start-pc",       required_argument, NULL, OPT_START_PC },
-    { "pass-pc",        required_argument, NULL, OPT_PASS_PC },
+    { "stop-pc",        required_argument, NULL, OPT_STOP_PC },
+    { "assert-mem",     required_argument, NULL, OPT_ASSERT_MEM },
     { "timeout-cycles", required_argument, NULL, OPT_START_PC },
+    { "trace",          no_argument,       NULL, OPT_TRACE },
 };
-
-typedef struct TestConfig {
-    uint16_t start_pc;
-    uint16_t pass_pc;
-    uint64_t timeout_cycles;
-} TestConfig;
 
 int cmd_test(int argc, char **argv) {
     int opt;
+    bool tracing = false;
     TestConfig config;
-    config.timeout_cycles = 1000000;
+    test_config_init(&config);
 
     while ((opt = getopt_long(argc, argv, "", test_options, NULL)) != -1) {
         switch (opt) {
             case OPT_START_PC: {
-                config.start_pc = parse_addr(optarg);
+                parse_addr(optarg, &config.start_pc);
                 break;
             }
-            case OPT_PASS_PC: {
-                config.pass_pc = parse_addr(optarg);
+            case OPT_STOP_PC: {
+                parse_addr(optarg, &config.stop_pc);
+                break;
+            }
+            case OPT_ASSERT_MEM: {
+                uint16_t addr;
+                uint8_t value;
+
+                parse_assert_mem_exp(optarg, &addr, &value);
+
+                Assertion assert_mem = {
+                    .type = ASSERT_MEM_EQ,
+                    .mem = {
+                        .addr = addr,
+                        .value = value,
+                    }
+                };
+
+                if (test_config_add_assertion(&config, assert_mem) != 0) {
+                    fprintf(stderr, "Failed to add assertion");
+                    return EXIT_FAILURE;
+                };
                 break;
             }
             case OPT_TIMEOUT_CYCLES: {
-                config.timeout_cycles = parse_uint64(optarg);
+                parse_uint64(optarg, &config.timeout_cycles);
+                break;
+            }
+            case OPT_TRACE: {
+                tracing = true;
                 break;
             }
             default:
@@ -206,6 +233,10 @@ int cmd_test(int argc, char **argv) {
         fprintf(stderr, "Failed to initialize NES");
         return EXIT_FAILURE;
     }
+    if (tracing) {
+        nes.cpu.trace = print_trace;
+        nes.cpu.trace_ctx = &nes;
+    }
 
     nes_reset(&nes);
 
@@ -214,45 +245,120 @@ int cmd_test(int argc, char **argv) {
     }
 
     while (nes.total_cpu_cycles < config.timeout_cycles) {
-        if (config.pass_pc && nes.cpu.PC == config.pass_pc) {
-            printf("PASS: Program reached PC 0x%04d\n", nes.cpu.PC);
+        nes_step(&nes);
+
+        if (nes.cpu.PC == config.stop_pc) {
+            nes_step(&nes);
+            evaluate_assertions(&nes, &config);
             return EXIT_SUCCESS;
         }
-        nes_step(&nes);
     }
 
     printf("FAIL: Timeout after %llu cycles\n", nes.total_cpu_cycles);
 
     cartridge_free(&cart);
+    test_config_free(&config);
     return EXIT_SUCCESS;
 }
 
-uint16_t parse_addr(const char *str) {
+void evaluate_assertions(nes *nes, TestConfig *config) {
+    for (size_t i = 0; i < config->assertion_cnt; i++) {
+        Assertion assert = config->assertions[i];
+
+        switch (assert.type) {
+            case ASSERT_MEM_EQ: {
+                if (nes->wram[assert.mem.addr] != assert.mem.value) {
+                    printf("FAIL: expected %04X=%02X, actual %04X=%02X\n",
+                        assert.mem.addr,
+                        assert.mem.value,
+                        assert.mem.addr,
+                        nes->wram[assert.mem.addr]
+                    );
+                } else {
+                    printf("PASS: expected %04X=%02X, actual %04X=%02X\n",
+                        assert.mem.addr,
+                        assert.mem.value,
+                        assert.mem.addr,
+                        nes->wram[assert.mem.addr]
+                    );                        
+                }
+                break;
+            }
+            default:
+                break;
+        }
+    }
+}
+
+int parse_addr(const char *str, uint16_t *addr) {
     char *end;
     unsigned long value = strtoul(str, &end, 16);
 
     if (*end != '\0') {
-        fprintf(stderr, "invalid address: %s\n", str);
-        exit(EXIT_FAILURE);
+        return -1;
     }
 
     if (value > 0xFFFF) {
-        fprintf(stderr, "address out of range: %s\n", str);
-        exit(EXIT_FAILURE);
+        return -1;
     }
 
-    return (uint16_t)value;
+    *addr = (uint16_t)value;
+    return 0;
 }
 
-uint64_t parse_uint64(const char *str) {
+int parse_uint8(const char *str, uint8_t *value) {
     char *end;
 
-    int value = strtoul(str, &end, 10);
+    int parsed_value = strtoul(str, &end, 10);
 
     if (*end != '\0') {
-        fprintf(stderr, "invalid number: %s\n", str);
-        exit(EXIT_FAILURE);
+        return -1;
     }
 
-    return (uint64_t)value;
+    *value = (uint8_t)parsed_value;
+
+    return 0;
+}
+
+int parse_uint64(const char *str, uint64_t *value) {
+    char *end;
+
+    int parsed_value = strtoul(str, &end, 10);
+
+    if (*end != '\0') {
+        return -1;
+    }
+
+    *value = (uint64_t)parsed_value;
+
+    return 0;
+}
+
+int parse_assert_mem_exp(const char *arg, uint16_t *addr, uint8_t *value) {
+    const char *eq = strchr(arg, '=');
+    if (!eq) {
+        return -1;
+    }
+
+    // Parse address (left side)
+    char addr_str[16];
+    size_t addr_len = eq - arg;
+
+    if (addr_len >= sizeof(addr_str)) {
+        return -1;
+    }
+
+    memcpy(addr_str, arg, addr_len);
+    addr_str[addr_len] = '\0';
+
+    if (parse_addr(addr_str, addr) != 0) {
+        return -1;
+    }
+
+    // Parse value (right side)
+    if (parse_uint8(eq + 1, value) != 0) {
+        return -1;
+    }
+
+    return 0;
 }

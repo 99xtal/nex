@@ -9,7 +9,17 @@
             "type": "lldb",
             "request": "launch",
             "program": "${workspaceFolder}/build/nex",
-            "args": ["-t", "${workspaceFolder}/roms/super_mario_bros.nes"],
+            "args": [
+                "test",
+                "--start-pc",
+                "0xC000",
+                "--stop-pc",
+                "0xC66E",
+                "--assert-mem",
+                "0x02=0",
+                "--trace",
+                "${workspaceFolder}/roms/nestest.nes"
+            ],
             "cwd": "${fileDirname}",
         },
     ]

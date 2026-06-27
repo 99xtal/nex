@@ -135,7 +135,13 @@ int nes_init(nes *n, cartridge *c, ppu2C02_render_fn render_fn, void *render_ctx
     n->total_cpu_cycles = 0;
     n->cartridge = c;
 
-    cpu6502_init(&n->cpu, nes_cpu_read, nes_cpu_write, n);
+    cpu6502_init(
+        &n->cpu,
+        CPU6502_VARIANT_NMOS,
+        nes_cpu_read,
+        nes_cpu_write,
+        n
+    );
     ppu2C02_init(&n->ppu, nes_ppu_read, nes_ppu_write, n, render_fn, render_ctx);
 
     return 0;
