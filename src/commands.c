@@ -306,10 +306,10 @@ int parse_addr(const char *str, uint16_t *addr) {
     return 0;
 }
 
-int parse_uint8(const char *str, uint8_t *value) {
+int parse_uint8(const char *str, uint8_t *value, int base) {
     char *end;
 
-    int parsed_value = strtoul(str, &end, 10);
+    int parsed_value = strtoul(str, &end, base);
 
     if (*end != '\0') {
         return -1;
@@ -356,7 +356,7 @@ int parse_assert_mem_exp(const char *arg, uint16_t *addr, uint8_t *value) {
     }
 
     // Parse value (right side)
-    if (parse_uint8(eq + 1, value) != 0) {
+    if (parse_uint8(eq + 1, value, 16) != 0) {
         return -1;
     }
 
