@@ -137,7 +137,7 @@ int nes_init(nes *n, cartridge *c, ppu2C02_render_fn render_fn, void *render_ctx
 
     cpu6502_init(
         &n->cpu,
-        CPU6502_VARIANT_NMOS,
+        CPU6502_VARIANT_RP2A03,
         nes_cpu_read,
         nes_cpu_write,
         n
