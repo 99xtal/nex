@@ -120,6 +120,10 @@ void render_pixel(void *render_ctx, int x, int y, uint8_t color_index) {
 /**
  * "test"
  */
+
+#define RED_TEXT "\033[1;31m"
+#define RESET_TEXT "\033[0m"
+
 void usage_test(const char *prog) {
     fprintf(stderr,
         "nex %s [options...] [ROM]\n"
@@ -254,7 +258,7 @@ int cmd_test(int argc, char **argv) {
         }
     }
 
-    printf("FAIL: Timeout after %llu cycles\n", nes.total_cpu_cycles);
+    printf(RED_TEXT "FAIL" RESET_TEXT ": Timeout after %llu cycles\n", nes.total_cpu_cycles);
 
     cartridge_free(&cart);
     test_config_free(&config);
@@ -268,7 +272,7 @@ void evaluate_assertions(nes *nes, TestConfig *config) {
         switch (assert.type) {
             case ASSERT_MEM_EQ: {
                 if (nes->wram[assert.mem.addr] != assert.mem.value) {
-                    printf("FAIL: expected %04X=%02X, actual %04X=%02X\n",
+                    printf(RED_TEXT "FAIL" RESET_TEXT ": expected %04X=%02X, actual %04X=%02X\n",
                         assert.mem.addr,
                         assert.mem.value,
                         assert.mem.addr,

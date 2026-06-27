@@ -11,8 +11,9 @@ void usage(const char *prog) {
         "  -v     Show version\n"
         "  -h     Show usage\n"
         "\n"
-        "Commands\n"
-        "  run    Run an ROM in the emulator\n",
+        "Commands:\n"
+        "  run    Run a ROM in the emulator\n"
+        "  test   Test a ROM in a headless emulator environment\n",
         prog
     );
 }
