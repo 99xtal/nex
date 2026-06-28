@@ -94,11 +94,18 @@ void print_trace(void *trace_ctx, cpu6502_trace trace) {
         );
     }
 
+    char mnemonic[5];
+
+    if (trace.is_undocumented_inst)
+        snprintf(mnemonic, sizeof mnemonic, "*%s", trace.mnemonic);
+    else
+        snprintf(mnemonic, sizeof mnemonic, " %s", trace.mnemonic);
+
     printf(
-        "%04X  %-9s %-3s %-27s A:%02X X:%02X Y:%02X P:%02X SP:%02X PPU:%3d,%3d CYC:%llu\n",
+        "%04X  %-9s%-4s %-27s A:%02X X:%02X Y:%02X P:%02X SP:%02X PPU:%3d,%3d CYC:%llu\n",
         trace.PC,
         byte_str,
-        trace.mnemonic,
+        mnemonic,
         trace.operand,
         trace.A,
         trace.X,
