@@ -374,3 +374,57 @@ int parse_assert_mem_exp(const char *arg, uint16_t *addr, uint8_t *value) {
 
     return 0;
 }
+
+/**
+ * "info"
+ */
+
+void usage_info(const char *prog) {
+    fprintf(stderr,
+        "nex %s [ROM]\n"
+        "Print metadata about ROM file\n"
+        "\n",
+        prog
+    );
+}
+
+static struct option info_options[] = {};
+
+int cmd_info(int argc, char **argv) {
+    int opt;
+
+    while ((opt = getopt_long(argc, argv, "", info_options, NULL)) != -1) {
+        switch (opt) {
+            default:
+                break;
+        }
+    }
+
+    if (optind >= argc) {
+        usage_info(argv[0]);
+        fprintf(stderr, "\nMissing ROM file\n");
+        return EXIT_FAILURE;
+    }
+
+    // init cartridge
+    const char *rom_path = argv[optind];
+
+    cartridge cart = {0};
+    if (cartridge_load(&cart, rom_path) != 0) {
+        fprintf(stderr, "Invalid ROM file");
+        return EXIT_FAILURE;
+    }
+
+    printf(
+        "File Info:\n"
+        "\tROM format: iNES 1.0\n"
+        "\n"
+        "Cartridge Info:\n"
+        "\tPRG ROM: %d KB\n"
+        "\tCHR_ROM: %d KB\n",
+        (int)(cart.prg_rom_size / 1000),
+        (int)(cart.chr_rom_size / 1000)
+    );
+
+    return EXIT_SUCCESS;
+}

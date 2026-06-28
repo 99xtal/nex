@@ -13,7 +13,8 @@ void usage(const char *prog) {
         "\n"
         "Commands:\n"
         "  run    Run a ROM in the emulator\n"
-        "  test   Test a ROM in a headless emulator environment\n",
+        "  test   Test a ROM in a headless emulator environment\n"
+        "  info   Print metadata about ROM file\n",
         prog
     );
 }
@@ -21,6 +22,7 @@ void usage(const char *prog) {
 static Command commands[] = {
     { .name = "run", .execute = cmd_run },
     { .name = "test", .execute = cmd_test },
+    { .name = "info", .execute = cmd_info },
 };
 
 int main(int argc, char **argv) {
