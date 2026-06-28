@@ -129,6 +129,7 @@ void render_pixel(void *render_ctx, int x, int y, uint8_t color_index) {
  */
 
 #define RED_TEXT "\033[1;31m"
+#define GREEN_TEXT "\033[1;32m"
 #define RESET_TEXT "\033[0m"
 
 void usage_test(const char *prog) {
@@ -286,7 +287,7 @@ void evaluate_assertions(nes *nes, TestConfig *config) {
                         nes->wram[assert.mem.addr]
                     );
                 } else {
-                    printf("PASS: expected %04X=%02X, actual %04X=%02X\n",
+                    printf(GREEN_TEXT "PASS" RESET_TEXT ": expected %04X=%02X, actual %04X=%02X\n",
                         assert.mem.addr,
                         assert.mem.value,
                         assert.mem.addr,
