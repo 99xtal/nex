@@ -17,7 +17,13 @@ uint8_t nrom_cpu_read(mapper *m, uint16_t addr) {
     return c->prg_rom[addr - 0x8000];
 }
 
-void nrom_cpu_write(mapper *m __attribute__((unused)), uint16_t addr __attribute__((unused)), uint8_t value __attribute__((unused))) {}
+void nrom_cpu_write(mapper *m, uint16_t addr, uint8_t value) {
+    cartridge *c = m->ctx;
+
+    if (addr >= 0x6000 && addr < 0x8000) {
+        c->prg_ram[(addr - 0x6000) % 0x2000] = value;
+    }
+}
 
 uint8_t nrom_ppu_read(mapper *m, uint16_t addr) {
     cartridge *c = m->ctx;

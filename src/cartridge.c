@@ -70,6 +70,9 @@ int cartridge_load_ines_v1(cartridge *c, uint8_t *header, FILE *f) {
         return -1;
     }
 
+    c->prg_ram_size = 0x2000;
+    c->prg_ram = calloc(c->prg_ram_size, sizeof(uint8_t));
+
     if (fread(c->prg_rom, 1, c->prg_rom_size, f) != c->prg_rom_size) {
         fclose(f);
         return -1;

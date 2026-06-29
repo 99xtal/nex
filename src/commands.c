@@ -167,7 +167,7 @@ static struct option test_options[] = {
     { "start-pc",       required_argument, NULL, OPT_START_PC },
     { "stop-pc",        required_argument, NULL, OPT_STOP_PC },
     { "assert-mem",     required_argument, NULL, OPT_ASSERT_MEM },
-    { "timeout-cycles", required_argument, NULL, OPT_START_PC },
+    { "timeout-cycles", required_argument, NULL, OPT_TIMEOUT_CYCLES },
     { "trace",          no_argument,       NULL, OPT_TRACE },
 };
 
