@@ -9,7 +9,5 @@ typedef struct Command {
 } Command;
 
 exec_fn cmd_run;
-exec_fn cmd_test;
-exec_fn cmd_info;
 
 #endif

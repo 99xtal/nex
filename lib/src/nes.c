@@ -1,5 +1,8 @@
 #include <string.h>
+#include <nex/nes.h>
 #include "nes.h"
+
+int nex_init(nes *n);
 
 uint8_t nes_cpu_read(void *ctx, uint16_t addr) {
     nes *n = ctx;
@@ -126,14 +129,30 @@ void nes_ppu_write(void *ctx, uint16_t addr, u_int8_t value) {
     }
 }
 
-int nes_init(nes *n, cartridge *c) {
-    if (!n || !c) {
+nes *nex_create(void) {
+    nes *n = malloc(sizeof(*n));
+    if (!n) return NULL;
+
+    if (nex_init(n) != 0) {
+        free(n);
+        return NULL;
+    }
+
+    return n;
+}
+
+int nex_init(nes *n) {
+    if (!n) {
         return -1;
     }
 
     memset(n, 0, sizeof(*n));
     n->total_cpu_cycles = 0;
-    n->cartridge = c;
+
+    n->cartridge = malloc(sizeof(*n->cartridge));
+    if (!n->cartridge) {
+        return -1;
+    }
 
     cpu6502_init(
         &n->cpu,
@@ -147,7 +166,11 @@ int nes_init(nes *n, cartridge *c) {
     return 0;
 }
 
-void nes_reset(nes *n) {
+int nex_load_rom(nes *n, const char *path) {
+    return cartridge_load(n->cartridge, path);
+}
+
+void nex_reset(nes *n) {
     if (!n) {
         return;
     }
@@ -162,7 +185,7 @@ void nes_reset(nes *n) {
     n->total_cpu_cycles += cpu_cycles;
 }
 
-void nes_step(nes *n) {
+void nex_step(nes *n) {
     int cpu_cycles;
 
     if (n->ppu.nmi_pending) {
@@ -187,10 +210,11 @@ void nes_step(nes *n) {
     n->total_cpu_cycles += cpu_cycles;
 }
 
-void nes_free(nes *n) {
+void nex_free(nes *n) {
     if (!n) {
         return;
     }
 
+    free(n->cartridge);
     free(n);
 }

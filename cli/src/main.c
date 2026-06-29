@@ -3,7 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "commands.h"
+#include "commands/commands.h"
 
 void usage(const char *prog) {
     fprintf(stderr,
@@ -12,17 +12,13 @@ void usage(const char *prog) {
         "  -h     Show usage\n"
         "\n"
         "Commands:\n"
-        "  run    Run a ROM in the emulator\n"
-        "  test   Test a ROM in a headless emulator environment\n"
-        "  info   Print metadata about ROM file\n",
+        "  run    Run a ROM in the emulator\n",
         prog
     );
 }
 
 static Command commands[] = {
     { .name = "run", .execute = cmd_run },
-    { .name = "test", .execute = cmd_test },
-    { .name = "info", .execute = cmd_info },
 };
 
 int main(int argc, char **argv) {
