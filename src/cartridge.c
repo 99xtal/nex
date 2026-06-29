@@ -2,6 +2,15 @@
 #include <string.h>
 #include "cartridge.h"
 
+typedef enum {
+    FILE_INES_V1,
+    FILE_INES_V2,
+    FILE_UNKNOWN,
+} RomFileFormat;
+
+int cartridge_load_ines_v1(cartridge *c, uint8_t *header, FILE *f);
+RomFileFormat get_file_format(uint8_t *header);
+
 int cartridge_load(cartridge *c, const char *path) {
     if (!c || !path) {
         return -1;
@@ -21,12 +30,29 @@ int cartridge_load(cartridge *c, const char *path) {
         return -1;
     }
 
-    if (memcmp(header, "NES\x1a", 4) != 0) {
-        fclose(f);
-        cartridge_free(c);
-        return -1;
+    RomFileFormat file_format = get_file_format(header);
+
+    switch (file_format) {
+        case FILE_INES_V1:
+            if (cartridge_load_ines_v1(c, header, f) != 0) {
+                fclose(f);
+                cartridge_free(c);
+                return -1;
+            }
+            break;
+        case FILE_INES_V2:
+        case FILE_UNKNOWN:
+        default: {
+            fclose(f);
+            cartridge_free(c);
+            return -1;
+        }
     }
 
+    return 0;
+}
+
+int cartridge_load_ines_v1(cartridge *c, uint8_t *header, FILE *f) {
     c->prg_rom_size = header[4] * 16 * 1024;
     c->chr_rom_size = header[5] * 8 * 1024;
     c->mapper_num = (header[6] >> 4) | (header[7] & 0xF0);
@@ -101,3 +127,18 @@ void cartridge_free(cartridge *c) {
     free(c->chr_rom);
     memset(c, 0, sizeof(*c));
 }
+
+RomFileFormat get_file_format(uint8_t *header) {
+    bool is_ines_v1 = memcmp(header, "NES\x1a", 4) == 0;
+
+    if (is_ines_v1) {
+        if ((header[7] & 0x0C) == 0x08) {
+            return FILE_INES_V2;
+        } else {
+            return FILE_INES_V1;
+        }
+    }
+
+    return FILE_UNKNOWN;
+}
+

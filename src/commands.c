@@ -415,15 +415,28 @@ int cmd_info(int argc, char **argv) {
         return EXIT_FAILURE;
     }
 
+    char *prg_ram_info = "";
+    if (cart.has_battery_prg_ram) {
+        sprintf(prg_ram_info, "PRG RAM: %d KB", 0);
+    }
+
     printf(
         "File Info:\n"
-        "\tROM format: iNES 1.0\n"
+        "  ROM format: iNES 1.0\n"
         "\n"
         "Cartridge Info:\n"
-        "\tPRG ROM: %d KB\n"
-        "\tCHR_ROM: %d KB\n",
+        "  PRG ROM: %d KB\n"
+        "%s"
+        "  CHR_ROM: %d KB\n"
+        "  Mapper:  %d\n"
+        "  Nametable arrangement:  %s\n",
         (int)(cart.prg_rom_size / 1000),
-        (int)(cart.chr_rom_size / 1000)
+        prg_ram_info,
+        (int)(cart.chr_rom_size / 1000),
+        (int)(cart.mapper_num),
+        cart.nt_mirroring == NT_MIRROR_HORIZONTAL
+            ? "Vertical (\"Horizontal Mirroring\")"
+            : "Horizontal (\"Vertical Mirroring\")"
     );
 
     return EXIT_SUCCESS;
