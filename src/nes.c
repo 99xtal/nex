@@ -126,7 +126,7 @@ void nes_ppu_write(void *ctx, uint16_t addr, u_int8_t value) {
     }
 }
 
-int nes_init(nes *n, cartridge *c, ppu2C02_render_fn render_fn, void *render_ctx) {
+int nes_init(nes *n, cartridge *c) {
     if (!n || !c) {
         return -1;
     }
@@ -142,7 +142,7 @@ int nes_init(nes *n, cartridge *c, ppu2C02_render_fn render_fn, void *render_ctx
         nes_cpu_write,
         n
     );
-    ppu2C02_init(&n->ppu, nes_ppu_read, nes_ppu_write, n, render_fn, render_ctx);
+    ppu2C02_init(&n->ppu, nes_ppu_read, nes_ppu_write, n);
 
     return 0;
 }
@@ -175,6 +175,13 @@ void nes_step(nes *n) {
     // PPU ticks 3 times for every CPU cycle
     for (int i = 0; i < cpu_cycles * 3; i++) {
         ppu2C02_step(&n->ppu);
+    }
+
+    if (n->ppu.frame_ready) {
+        n->ppu.frame_ready = false;
+        
+        // convert PPU color indices into a framebuffer
+        // execute framebuffer callback
     }
 
     n->total_cpu_cycles += cpu_cycles;

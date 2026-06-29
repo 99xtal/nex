@@ -50,9 +50,7 @@ void ppu2C02_init(
     ppu2C02 *ppu,
     ppu2C02_read_fn read,
     ppu2C02_write_fn write,
-    void *ctx,
-    ppu2C02_render_fn render,
-    void *render_ctx
+    void *ctx
 ) {
     memset(ppu, 0, sizeof(*ppu));
 
@@ -60,8 +58,6 @@ void ppu2C02_init(
     ppu->write = write;
     ppu->ctx = ctx;
 
-    ppu->render_pixel = render;
-    ppu->render_ctx = render_ctx;
     return;
 }
 
@@ -112,6 +108,7 @@ void ppu2C02_step(ppu2C02 *ppu) {
 
     // Vblank phase
     if (ppu->scanline == VBLANK_SCANLINE && ppu->dot == 1) {
+        ppu->frame_ready = true;
         ppu->status |= PPUSTATUS_VBLANK;
         if (ppu->ctrl & PPUCTRL_NMI_ENABLE) {
             ppu->nmi_pending = 1;
@@ -249,9 +246,7 @@ void render_bg_pixel(ppu2C02 *ppu) {
     }
 
     uint8_t color_index = ppu->read(ppu->ctx, palette_addr);
-    if (ppu->render_pixel) {
-        ppu->render_pixel(ppu->render_ctx, x, y, color_index);
-    }
+    ppu->color_indices[(y * SCREEN_WIDTH) + x] = color_index;
 }
 
 /**

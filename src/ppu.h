@@ -116,18 +116,15 @@ typedef struct ppu2C02 {
     ppu2C02_write_fn write;
     void *ctx;
 
-    // "frame ready" render callback
-    ppu2C02_render_fn render_pixel;
-    void *render_ctx;
+    uint8_t color_indices[SCREEN_WIDTH * SCREEN_HEIGHT];
+    bool frame_ready;
 } ppu2C02;
 
 void ppu2C02_init(
     ppu2C02 *ppu,
     ppu2C02_read_fn read,
     ppu2C02_write_fn write,
-    void *ctx,
-    ppu2C02_render_fn render,
-    void *render_ctx
+    void *ctx
 );
 
 void ppu2C02_reset(ppu2C02 *ppu);

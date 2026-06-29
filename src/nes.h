@@ -15,13 +15,9 @@ typedef struct {
     cartridge *cartridge;
 
     uint64_t total_cpu_cycles;
-
-    // called on pixel render
-    ppu2C02_render_fn render_pixel;
-    void *render_ctx;
 } nes;
 
-int nes_init(nes *n, cartridge *c, ppu2C02_render_fn render_fn, void *render_ctx);
+int nes_init(nes *n, cartridge *c);
 
 void nes_reset(nes *n);
 

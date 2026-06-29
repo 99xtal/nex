@@ -22,7 +22,6 @@ void usage_run(const char *prog) {
 }
 
 void print_trace(void *trace_ctx, cpu6502_trace trace);
-void render_pixel(void *render_ctx, int x, int y, uint8_t color_index);
 
 int cmd_run(int argc, char **argv) {
     int opt;
@@ -56,10 +55,8 @@ int cmd_run(int argc, char **argv) {
         return EXIT_FAILURE;
     }
 
-    uint8_t framebuffer[256 * 240];
-
     nes nes = {0};
-    if ((nes_init(&nes, &cart, render_pixel, framebuffer)) != 0) {
+    if ((nes_init(&nes, &cart)) != 0) {
         cartridge_free(&cart);
         fprintf(stderr, "Failed to initialize NES");
         return EXIT_FAILURE;
@@ -116,12 +113,6 @@ void print_trace(void *trace_ctx, cpu6502_trace trace) {
         n->ppu.dot,
         n->total_cpu_cycles
     );
-}
-
-void render_pixel(void *render_ctx, int x, int y, uint8_t color_index) {
-    uint8_t *framebuffer = render_ctx;
-
-    framebuffer[(y * SCREEN_WIDTH) + x] = color_index;
 }
 
 /**
@@ -240,7 +231,7 @@ int cmd_test(int argc, char **argv) {
     uint8_t framebuffer[256 * 240];
 
     nes nes = {0};
-    if ((nes_init(&nes, &cart, render_pixel, framebuffer)) != 0) {
+    if ((nes_init(&nes, &cart)) != 0) {
         cartridge_free(&cart);
         fprintf(stderr, "Failed to initialize NES");
         return EXIT_FAILURE;
