@@ -26,7 +26,6 @@ int cartridge_load(cartridge *c, const char *path) {
     uint8_t header[16];
     if (fread(header, 1, 16, f) != 16) {
         fclose(f);
-        cartridge_free(c);
         return -1;
     }
 
@@ -36,7 +35,6 @@ int cartridge_load(cartridge *c, const char *path) {
         case FILE_INES_V1:
             if (cartridge_load_ines_v1(c, header, f) != 0) {
                 fclose(f);
-                cartridge_free(c);
                 return -1;
             }
             break;
@@ -44,7 +42,6 @@ int cartridge_load(cartridge *c, const char *path) {
         case FILE_UNKNOWN:
         default: {
             fclose(f);
-            cartridge_free(c);
             return -1;
         }
     }
@@ -63,7 +60,6 @@ int cartridge_load_ines_v1(cartridge *c, uint8_t *header, FILE *f) {
     if (c->has_trainer) {
         if (fseek(f, 512, SEEK_CUR) != 0) {
             fclose(f);
-            cartridge_free(c);
             return -1;
         }
     }
@@ -71,13 +67,11 @@ int cartridge_load_ines_v1(cartridge *c, uint8_t *header, FILE *f) {
     c->prg_rom = malloc(c->prg_rom_size);
     if (!c->prg_rom) {
         fclose(f);
-        cartridge_free(c);
         return -1;
     }
 
     if (fread(c->prg_rom, 1, c->prg_rom_size, f) != c->prg_rom_size) {
         fclose(f);
-        cartridge_free(c);
         return -1;
     }
 
@@ -86,13 +80,11 @@ int cartridge_load_ines_v1(cartridge *c, uint8_t *header, FILE *f) {
         c->chr_rom = malloc(c->chr_rom_size);
         if (!c->chr_rom) {
             fclose(f);
-            cartridge_free(c);
             return -1;
         }
 
         if (fread(c->chr_rom, 1, c->chr_rom_size, f) != c->chr_rom_size) {
             fclose(f);
-            cartridge_free(c);
             return -1;
         }
     } else {
@@ -109,7 +101,6 @@ int cartridge_load_ines_v1(cartridge *c, uint8_t *header, FILE *f) {
         }
         default: {
             fclose(f);
-            cartridge_free(c);
             return -1;
         }
     }

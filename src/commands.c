@@ -410,10 +410,7 @@ int cmd_info(int argc, char **argv) {
     const char *rom_path = argv[optind];
 
     cartridge cart = {0};
-    if (cartridge_load(&cart, rom_path) != 0) {
-        fprintf(stderr, "Invalid ROM file");
-        return EXIT_FAILURE;
-    }
+    cartridge_load(&cart, rom_path);
 
     char *prg_ram_info = "";
     if (cart.has_battery_prg_ram) {
@@ -439,5 +436,6 @@ int cmd_info(int argc, char **argv) {
             : "Horizontal (\"Vertical Mirroring\")"
     );
 
+    cartridge_free(&cart);
     return EXIT_SUCCESS;
 }
