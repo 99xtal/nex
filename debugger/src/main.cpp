@@ -8,6 +8,7 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "imfilebrowser.h"
 
 #ifdef __APPLE__
 #define PRIMARY_MOD "Cmd"
@@ -23,12 +24,20 @@ struct Window {
 
 struct AppActions {
   void (*quit)(void* ctx);
+  void (*load_rom)(void* ctx, const char* path);
 
   void* ctx;
 };
 
+struct UiState {
+  ImGui::FileBrowser open_rom_dialog;
+
+  UiState() : open_rom_dialog(0) {}
+};
+
 struct UiContext {
   AppActions* actions;
+  UiState state;
 };
 
 struct App {
@@ -39,11 +48,19 @@ struct App {
 
 void show_ui(UiContext& ui);
 void show_menu_bar(UiContext& ui);
+void update_window_title(App* app, const char* rom_path);
 
 void app_quit(void* ctx) {
   App* app = (App*)ctx;
 
   glfwSetWindowShouldClose(app->window.handle, GLFW_TRUE);
+}
+
+void app_load_rom(void* ctx, const char* path) {
+  App* app = (App*)ctx;
+
+  printf("Selected ROM: %s\n", path);
+  update_window_title(app, path);
 }
 
 void glfw_error_callback(int error, const char* description) {
@@ -84,6 +101,7 @@ int window_init(Window& window) {
 int actions_init(App& app) {
   app.actions = {
       .quit = app_quit,
+      .load_rom = app_load_rom,
       .ctx = &app,
   };
   return 0;
@@ -101,6 +119,10 @@ int ui_init(UiContext& ui, Window& window, AppActions& actions) {
 
   ImGui_ImplGlfw_InitForOpenGL(window.handle, true);
   ImGui_ImplOpenGL3_Init("#version 330");
+
+  // (optional) set browser properties
+  ui.state.open_rom_dialog.SetTitle("Open ROM");
+  ui.state.open_rom_dialog.SetTypeFilters({".nes"});
 
   ui.actions = &actions;
 
@@ -181,6 +203,10 @@ void handle_shortcuts(UiContext& ui) {
 
   bool mod = io.KeyCtrl || io.KeySuper;  // Ctrl on Windows/Linux, Cmd on macOS
 
+  if (mod && ImGui::IsKeyPressed(ImGuiKey_O)) {
+    ui.state.open_rom_dialog.Open();
+  }
+
   if (mod && ImGui::IsKeyPressed(ImGuiKey_Q)) {
     ui.actions->quit(ui.actions->ctx);
   }
@@ -194,8 +220,8 @@ void show_ui(UiContext& ui) {
 void show_menu_bar(UiContext& ui) {
   if (ImGui::BeginMainMenuBar()) {
     if (ImGui::BeginMenu("File")) {
-      if (ImGui::MenuItem("Open ROM...")) {
-        // ...
+      if (ImGui::MenuItem("Open ROM", PRIMARY_MOD "+O")) {
+        ui.state.open_rom_dialog.Open();
       }
 
       if (ImGui::MenuItem("Quit", PRIMARY_MOD "+Q")) {
@@ -224,4 +250,22 @@ void show_menu_bar(UiContext& ui) {
 
     ImGui::EndMainMenuBar();
   }
+
+  ui.state.open_rom_dialog.Display();
+
+  if (ui.state.open_rom_dialog.HasSelected()) {
+    ui.actions->load_rom(
+        ui.actions->ctx,
+        ui.state.open_rom_dialog.GetSelected().string().c_str());
+    ui.state.open_rom_dialog.ClearSelected();
+  }
+}
+
+void update_window_title(App* app, const char* rom_path) {
+  std::filesystem::path path(rom_path);
+
+  std::string title = "nex - ";
+  title += path.filename().string();
+
+  glfwSetWindowTitle(app->window.handle, title.c_str());
 }

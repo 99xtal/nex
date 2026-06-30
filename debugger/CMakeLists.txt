@@ -6,6 +6,10 @@ add_executable(nex-debug
     ${NEX_DEBUGGER_SOURCES}
 )
 
+target_include_directories(nex-debug PRIVATE
+    ${PROJECT_SOURCE_DIR}/external/imgui-filebrowser
+)
+
 target_link_libraries(nex-debug
     PRIVATE
         nex
