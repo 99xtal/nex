@@ -11,6 +11,7 @@ target_link_libraries(nex-debug
         nex
         glfw
         glad
+        imgui
 )
 
 target_compile_features(nex-debug
