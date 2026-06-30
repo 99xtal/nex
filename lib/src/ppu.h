@@ -1,6 +1,7 @@
 #ifndef PPU_H
 #define PPU_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #define SCREEN_WIDTH 256
@@ -12,12 +13,10 @@
 #define VBLANK_SCANLINE 241
 #define PRERENDER_SCANLINE 261
 
-typedef uint8_t (*ppu2C02_read_fn)(void* ctx, uint16_t address);
-typedef void (*ppu2C02_write_fn)(void* ctx, uint16_t address, uint8_t value);
-typedef void (*ppu2C02_render_fn)(void* render_ctx, int x, int y,
-                                  uint8_t color_index);
+typedef uint8_t (*PPUReadFn)(void* ctx, uint16_t address);
+typedef void (*PPUWriteFn)(void* ctx, uint16_t address, uint8_t value);
 
-typedef struct ppu2C02 {
+typedef struct PPU {
   // PPU state
   int16_t scanline;  // 0-239 visible, 240 post-render, 241-260 vblank, 261
                      // pre-render
@@ -118,23 +117,22 @@ typedef struct ppu2C02 {
   uint8_t data_buffer;  // for PPUDATA reads
 
   // callbacks for PPU address-space reads/writes: $0000-$3FFF
-  ppu2C02_read_fn read;
-  ppu2C02_write_fn write;
+  PPUReadFn read;
+  PPUWriteFn write;
   void* ctx;
 
   uint8_t color_indices[SCREEN_WIDTH * SCREEN_HEIGHT];
   bool frame_ready;
-} ppu2C02;
+} PPU;
 
-void ppu2C02_init(ppu2C02* ppu, ppu2C02_read_fn read, ppu2C02_write_fn write,
-                  void* ctx);
+void ppu_init(PPU* ppu, PPUReadFn read, PPUWriteFn write, void* ctx);
 
-void ppu2C02_reset(ppu2C02* ppu);
+void ppu_reset(PPU* ppu);
 
-void ppu2C02_step(ppu2C02* ppu);
+void ppu_step(PPU* ppu);
 
 // functions to be used by CPU to read/write to MMIO registers
-uint8_t ppu2C02_cpu_read(ppu2C02* ppu, uint8_t reg);
-void ppu2C02_cpu_write(ppu2C02* ppu, uint8_t reg, uint8_t value);
+uint8_t ppu_cpu_read(PPU* ppu, uint8_t reg);
+void ppu_cpu_write(PPU* ppu, uint8_t reg, uint8_t value);
 
 #endif  // PPU_H

@@ -7,14 +7,14 @@
 #include "cartridge.h"
 #include "ppu.h"
 
-struct nes {
+struct NES {
   cpu6502 cpu;
   uint8_t wram[0x0800];  // 2KB work RAM for CPU
 
-  ppu2C02 ppu;
+  PPU ppu;
   uint8_t vram[0x0800];  // 2KB video RAM for PPU
 
-  cartridge* cartridge;
+  Cartridge* cartridge;
 
   uint64_t total_cpu_cycles;
 };

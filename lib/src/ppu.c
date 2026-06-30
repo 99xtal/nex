@@ -9,22 +9,22 @@
 #define HORIZONTAL_SCROLL_MASK 0x041F
 #define VERTICAL_SCROLL_MASK 0x7B60
 
-void update_bg_fetch_pipeline(ppu2C02* ppu);
-void load_shift_registers(ppu2C02* ppu);
-void increment_scanline_position(ppu2C02* ppu);
-void render_bg_pixel(ppu2C02* ppu);
-bool rendering_enabled(ppu2C02* ppu);
-uint16_t get_current_nametable_address(ppu2C02* ppu);
-uint8_t get_bg_palette_number(ppu2C02* ppu);
-uint16_t get_current_attribute_address(ppu2C02* ppu);
-uint16_t get_bg_pattern_address(ppu2C02* ppu, uint16_t tile_num);
-void copy_horizontal_t_to_v(ppu2C02* ppu);
-void copy_vertical_t_to_v(ppu2C02* ppu);
-void increment_coarse_x(ppu2C02* ppu);
-void increment_y(ppu2C02* ppu);
-uint16_t coarse_x(ppu2C02* ppu);
-uint16_t coarse_y(ppu2C02* ppu);
-uint16_t fine_y(ppu2C02* ppu);
+void update_bg_fetch_pipeline(PPU* ppu);
+void load_shift_registers(PPU* ppu);
+void increment_scanline_position(PPU* ppu);
+void render_bg_pixel(PPU* ppu);
+bool rendering_enabled(PPU* ppu);
+uint16_t get_current_nametable_address(PPU* ppu);
+uint8_t get_bg_palette_number(PPU* ppu);
+uint16_t get_current_attribute_address(PPU* ppu);
+uint16_t get_bg_pattern_address(PPU* ppu, uint16_t tile_num);
+void copy_horizontal_t_to_v(PPU* ppu);
+void copy_vertical_t_to_v(PPU* ppu);
+void increment_coarse_x(PPU* ppu);
+void increment_y(PPU* ppu);
+uint16_t coarse_x(PPU* ppu);
+uint16_t coarse_y(PPU* ppu);
+uint16_t fine_y(PPU* ppu);
 
 typedef enum {
   PPUCTRL_NMI_ENABLE = (1 << 7),
@@ -46,8 +46,7 @@ typedef enum {
   PPUSTATUS_SPRITE_OVERFLOW = (1 << 5)
 } StatusFlag;
 
-void ppu2C02_init(ppu2C02* ppu, ppu2C02_read_fn read, ppu2C02_write_fn write,
-                  void* ctx) {
+void ppu_init(PPU* ppu, PPUReadFn read, PPUWriteFn write, void* ctx) {
   memset(ppu, 0, sizeof(*ppu));
 
   ppu->read = read;
@@ -57,9 +56,9 @@ void ppu2C02_init(ppu2C02* ppu, ppu2C02_read_fn read, ppu2C02_write_fn write,
   return;
 }
 
-void ppu2C02_reset(ppu2C02* ppu __attribute((unused))) { return; }
+void ppu_reset(PPU* ppu __attribute((unused))) { return; }
 
-void ppu2C02_step(ppu2C02* ppu) {
+void ppu_step(PPU* ppu) {
   bool visible_scanline = ppu->scanline >= 0 && ppu->scanline <= 239;
   bool visible_dot = ppu->dot >= 1 && ppu->dot <= 256;
   bool prerender_scanline = ppu->scanline == PRERENDER_SCANLINE;
@@ -113,7 +112,7 @@ void ppu2C02_step(ppu2C02* ppu) {
   increment_scanline_position(ppu);
 }
 
-uint8_t ppu2C02_cpu_read(ppu2C02* ppu, uint8_t reg) {
+uint8_t ppu_cpu_read(PPU* ppu, uint8_t reg) {
   switch (reg) {
     case 2: {
       // PPUSTATUS
@@ -146,7 +145,7 @@ uint8_t ppu2C02_cpu_read(ppu2C02* ppu, uint8_t reg) {
   }
 }
 
-void ppu2C02_cpu_write(ppu2C02* ppu, uint8_t reg, uint8_t value) {
+void ppu_cpu_write(PPU* ppu, uint8_t reg, uint8_t value) {
   switch (reg) {
     case 0: {
       // PPUCTRL
@@ -219,7 +218,7 @@ void ppu2C02_cpu_write(ppu2C02* ppu, uint8_t reg, uint8_t value) {
   }
 }
 
-void render_bg_pixel(ppu2C02* ppu) {
+void render_bg_pixel(PPU* ppu) {
   int x = ppu->dot - 1;
   int y = ppu->scanline;
 
@@ -271,7 +270,7 @@ void render_bg_pixel(ppu2C02* ppu) {
  *  next 8 background pixels and loads it into
  *  temporary latches / shift registers.
  */
-void update_bg_fetch_pipeline(ppu2C02* ppu) {
+void update_bg_fetch_pipeline(PPU* ppu) {
   switch ((ppu->dot - 1) % 8) {
     case 0: {
       load_shift_registers(ppu);
@@ -301,7 +300,7 @@ void update_bg_fetch_pipeline(ppu2C02* ppu) {
   }
 }
 
-void load_shift_registers(ppu2C02* ppu) {
+void load_shift_registers(PPU* ppu) {
   ppu->bg_pattern_low_shift =
       (ppu->bg_pattern_low_shift & 0xFF00) | ppu->bg_pattern_low;
   ppu->bg_pattern_high_shift =
@@ -316,7 +315,7 @@ void load_shift_registers(ppu2C02* ppu) {
 /**
  * Update current scanline, dot, and frame
  */
-void increment_scanline_position(ppu2C02* ppu) {
+void increment_scanline_position(PPU* ppu) {
   ppu->dot++;
   if (ppu->dot > DOT_MAX) {
     ppu->dot = 0;
@@ -331,7 +330,7 @@ void increment_scanline_position(ppu2C02* ppu) {
 /**
  * Determine if rendering is enabled by CPU based on PPUMASK flags
  */
-bool rendering_enabled(ppu2C02* ppu) {
+bool rendering_enabled(PPU* ppu) {
   return (ppu->mask & (PPUMASK_ENABLE_SPRITES | PPUMASK_ENABLE_BG)) != 0;
 }
 
@@ -342,7 +341,7 @@ bool rendering_enabled(ppu2C02* ppu) {
  * which encodes the nametable selection, coarse X, and
  * coarse Y scroll position.
  */
-uint8_t get_nametable_byte(ppu2C02* ppu) {
+uint8_t get_nametable_byte(PPU* ppu) {
   uint16_t nt_address = (ppu->v & 0x0FFF) + VRAM_START_ADDR;
   return ppu->read(ppu->ctx, nt_address);
 }
@@ -354,14 +353,14 @@ uint8_t get_nametable_byte(ppu2C02* ppu) {
  * which encodes the nametable selection, coarse X, and
  * coarse Y scroll position.
  */
-uint16_t get_current_nametable_address(ppu2C02* ppu) {
+uint16_t get_current_nametable_address(PPU* ppu) {
   return VRAM_START_ADDR | (ppu->v & 0x0FFF);
 }
 
 /**
  * Get the palette index of the current background tile
  */
-uint8_t get_bg_palette_number(ppu2C02* ppu) {
+uint8_t get_bg_palette_number(PPU* ppu) {
   uint16_t at_addr = get_current_attribute_address(ppu);
   uint8_t attribute_byte = ppu->read(ppu->ctx, at_addr);
 
@@ -385,7 +384,7 @@ uint8_t get_bg_palette_number(ppu2C02* ppu) {
  * X and coarse Y tile coordinates are divided by 4 to find
  * the attribute table entry covering the current tile.
  */
-uint16_t get_current_attribute_address(ppu2C02* ppu) {
+uint16_t get_current_attribute_address(PPU* ppu) {
   uint16_t nametable_start_addr = VRAM_START_ADDR | (ppu->v & 0x0C00);
   uint16_t attribute_table_start = nametable_start_addr + NT_SIZE;
 
@@ -400,19 +399,19 @@ uint16_t get_current_attribute_address(ppu2C02* ppu) {
  * Returns the address of the pattern table tile of the
  * current nametable tile.
  */
-uint16_t get_bg_pattern_address(ppu2C02* ppu, uint16_t tile_num) {
+uint16_t get_bg_pattern_address(PPU* ppu, uint16_t tile_num) {
   uint16_t pattern_table_base = 0;
   uint16_t pattern_table_num = (ppu->ctrl >> 4) & 0x01;
 
   return pattern_table_base + (pattern_table_num * 0x1000) + (tile_num << 4);
 }
 
-void copy_horizontal_t_to_v(ppu2C02* ppu) {
+void copy_horizontal_t_to_v(PPU* ppu) {
   ppu->v =
       (ppu->v & ~HORIZONTAL_SCROLL_MASK) | (ppu->t & HORIZONTAL_SCROLL_MASK);
 }
 
-void copy_vertical_t_to_v(ppu2C02* ppu) {
+void copy_vertical_t_to_v(PPU* ppu) {
   ppu->v = (ppu->v & ~VERTICAL_SCROLL_MASK) | (ppu->t & VERTICAL_SCROLL_MASK);
 }
 
@@ -423,7 +422,7 @@ void copy_vertical_t_to_v(ppu2C02* ppu) {
  * Coarse X is the horizontal tile position within
  * the current nametable (0-31).
  */
-uint16_t coarse_x(ppu2C02* ppu) { return ppu->v & 0x001F; }
+uint16_t coarse_x(PPU* ppu) { return ppu->v & 0x001F; }
 
 /**
  * Returns the coarse Y scroll component from the
@@ -432,7 +431,7 @@ uint16_t coarse_x(ppu2C02* ppu) { return ppu->v & 0x001F; }
  * Coarse Y is the vertical tile position within
  * the current nametable (0-29)
  */
-uint16_t coarse_y(ppu2C02* ppu) { return (ppu->v >> 5) & 0x001F; }
+uint16_t coarse_y(PPU* ppu) { return (ppu->v >> 5) & 0x001F; }
 
 /**
  * Returns the fine Y scroll component from the
@@ -441,9 +440,9 @@ uint16_t coarse_y(ppu2C02* ppu) { return (ppu->v >> 5) & 0x001F; }
  * Fine Y is the vertical dot position within
  * the current nametable
  */
-uint16_t fine_y(ppu2C02* ppu) { return (ppu->v >> 12) & 0x07; }
+uint16_t fine_y(PPU* ppu) { return (ppu->v >> 12) & 0x07; }
 
-void increment_coarse_x(ppu2C02* ppu) {
+void increment_coarse_x(PPU* ppu) {
   if ((ppu->v & 0x001F) == 31) {
     ppu->v &= ~0x001F;  // coarse x = 0;
     ppu->v ^= 0x0400;   // switch horizontal nametable
@@ -452,7 +451,7 @@ void increment_coarse_x(ppu2C02* ppu) {
   }
 }
 
-void increment_y(ppu2C02* ppu) {
+void increment_y(PPU* ppu) {
   if ((ppu->v & 0x7000) != 0x7000) {
     // increment fine y
     ppu->v += 0x1000;

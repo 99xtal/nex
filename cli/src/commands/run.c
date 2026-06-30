@@ -40,7 +40,7 @@ int cmd_run(int argc, char** argv) {
 
   const char* rom_path = argv[optind];
 
-  nes* nes = nex_create();
+  NES* nes = nex_create();
   if (!nes) {
     fprintf(stderr, "Failed to initialize NES");
     return EXIT_FAILURE;

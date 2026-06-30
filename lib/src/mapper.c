@@ -2,8 +2,8 @@
 
 #include "cartridge.h"
 
-uint8_t nrom_cpu_read(mapper* m, uint16_t addr) {
-  cartridge* c = m->ctx;
+uint8_t nrom_cpu_read(Mapper* m, uint16_t addr) {
+  Cartridge* c = m->ctx;
 
   if (addr < 0x8000) {
     return 0;
@@ -18,16 +18,16 @@ uint8_t nrom_cpu_read(mapper* m, uint16_t addr) {
   return c->prg_rom[addr - 0x8000];
 }
 
-void nrom_cpu_write(mapper* m, uint16_t addr, uint8_t value) {
-  cartridge* c = m->ctx;
+void nrom_cpu_write(Mapper* m, uint16_t addr, uint8_t value) {
+  Cartridge* c = m->ctx;
 
   if (addr >= 0x6000 && addr < 0x8000) {
     c->prg_ram[(addr - 0x6000) % 0x2000] = value;
   }
 }
 
-uint8_t nrom_ppu_read(mapper* m, uint16_t addr) {
-  cartridge* c = m->ctx;
+uint8_t nrom_ppu_read(Mapper* m, uint16_t addr) {
+  Cartridge* c = m->ctx;
 
   if (addr < 0x2000) {
     return c->chr_rom[addr];
@@ -36,15 +36,15 @@ uint8_t nrom_ppu_read(mapper* m, uint16_t addr) {
   return 0;
 }
 
-void nrom_ppu_write(mapper* m, u_int16_t addr, uint8_t value) {
-  cartridge* c = m->ctx;
+void nrom_ppu_write(Mapper* m, u_int16_t addr, uint8_t value) {
+  Cartridge* c = m->ctx;
 
   if (addr < 0x2000 && c->uses_chr_ram) {
     c->chr_rom[addr] = value;
   }
 }
 
-void mapper_nrom_init(mapper* m, cartridge* c) {
+void mapper_nrom_init(Mapper* m, Cartridge* c) {
   m->ctx = c;
   m->cpu_read = nrom_cpu_read;
   m->cpu_write = nrom_cpu_write;

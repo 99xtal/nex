@@ -3,16 +3,16 @@
 
 #include <lib6502/6502.h>
 
-typedef struct nes nes;
+typedef struct NES NES;
 
-nes* nex_create(void);
+NES* nex_create(void);
 
-int nex_load_rom(nes* n, const char* path);
+int nex_load_rom(NES* n, const char* path);
 
-void nex_reset(nes* n);
+void nex_reset(NES* n);
 
-void nex_step(nes* n);
+void nex_step(NES* n);
 
-void nex_free(nes* n);
+void nex_free(NES* n);
 
 #endif

@@ -3,10 +3,10 @@
 #include <nex/nes.h>
 #include <string.h>
 
-int nex_init(nes* n);
+int nex_init(NES* n);
 
 uint8_t nes_cpu_read(void* ctx, uint16_t addr) {
-  nes* n = ctx;
+  NES* n = ctx;
 
   if (addr < 0x2000) {
     return n->wram[addr % 0x0800];
@@ -15,7 +15,7 @@ uint8_t nes_cpu_read(void* ctx, uint16_t addr) {
   if (addr >= 0x2000 && addr < 0x4000) {
     // PPU MMIO registers
     uint8_t register_value = (addr - 0x2000) % 8;
-    return ppu2C02_cpu_read(&n->ppu, register_value);
+    return ppu_cpu_read(&n->ppu, register_value);
   }
 
   if (addr >= 0x4000 && addr < 0x4018) {
@@ -31,7 +31,7 @@ uint8_t nes_cpu_read(void* ctx, uint16_t addr) {
 }
 
 void nes_cpu_write(void* ctx, uint16_t addr, uint8_t value) {
-  nes* n = ctx;
+  NES* n = ctx;
 
   if (addr < 0x2000) {
     n->wram[addr % 0x0800] = value;
@@ -40,7 +40,7 @@ void nes_cpu_write(void* ctx, uint16_t addr, uint8_t value) {
   if (addr >= 0x2000 && addr < 0x4000) {
     // PPU MMIO registers
     uint8_t register_value = (addr - 0x2000) % 8;
-    ppu2C02_cpu_write(&n->ppu, register_value, value);
+    ppu_cpu_write(&n->ppu, register_value, value);
     return;
   }
 
@@ -57,7 +57,7 @@ void nes_cpu_write(void* ctx, uint16_t addr, uint8_t value) {
 }
 
 uint8_t nes_ppu_read(void* ctx, uint16_t addr) {
-  nes* n = ctx;
+  NES* n = ctx;
 
   // CHROM addressing
   if (addr < 0x2000) {
@@ -95,7 +95,7 @@ uint8_t nes_ppu_read(void* ctx, uint16_t addr) {
 }
 
 void nes_ppu_write(void* ctx, uint16_t addr, u_int8_t value) {
-  nes* n = ctx;
+  NES* n = ctx;
 
   // CHROM addressing
   if (addr < 0x2000) {
@@ -132,8 +132,8 @@ void nes_ppu_write(void* ctx, uint16_t addr, u_int8_t value) {
   }
 }
 
-nes* nex_create(void) {
-  nes* n = malloc(sizeof(*n));
+NES* nex_create(void) {
+  NES* n = malloc(sizeof(*n));
   if (!n) return NULL;
 
   if (nex_init(n) != 0) {
@@ -144,7 +144,7 @@ nes* nex_create(void) {
   return n;
 }
 
-int nex_init(nes* n) {
+int nex_init(NES* n) {
   if (!n) {
     return -1;
   }
@@ -158,31 +158,31 @@ int nex_init(nes* n) {
   }
 
   cpu6502_init(&n->cpu, CPU6502_VARIANT_RP2A03, nes_cpu_read, nes_cpu_write, n);
-  ppu2C02_init(&n->ppu, nes_ppu_read, nes_ppu_write, n);
+  ppu_init(&n->ppu, nes_ppu_read, nes_ppu_write, n);
 
   return 0;
 }
 
-int nex_load_rom(nes* n, const char* path) {
+int nex_load_rom(NES* n, const char* path) {
   return cartridge_load(n->cartridge, path);
 }
 
-void nex_reset(nes* n) {
+void nex_reset(NES* n) {
   if (!n) {
     return;
   }
 
-  ppu2C02_reset(&n->ppu);
+  ppu_reset(&n->ppu);
 
   int cpu_cycles = cpu6502_reset(&n->cpu);
   for (int i = 0; i < cpu_cycles * 3; i++) {
-    ppu2C02_step(&n->ppu);
+    ppu_step(&n->ppu);
   }
 
   n->total_cpu_cycles += cpu_cycles;
 }
 
-void nex_step(nes* n) {
+void nex_step(NES* n) {
   int cpu_cycles;
 
   if (n->ppu.nmi_pending) {
@@ -194,7 +194,7 @@ void nex_step(nes* n) {
 
   // PPU ticks 3 times for every CPU cycle
   for (int i = 0; i < cpu_cycles * 3; i++) {
-    ppu2C02_step(&n->ppu);
+    ppu_step(&n->ppu);
   }
 
   if (n->ppu.frame_ready) {
@@ -207,7 +207,7 @@ void nex_step(nes* n) {
   n->total_cpu_cycles += cpu_cycles;
 }
 
-void nex_free(nes* n) {
+void nex_free(NES* n) {
   if (!n) {
     return;
   }

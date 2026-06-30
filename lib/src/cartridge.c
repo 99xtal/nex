@@ -9,10 +9,10 @@ typedef enum {
   FILE_UNKNOWN,
 } RomFileFormat;
 
-int cartridge_load_ines_v1(cartridge* c, uint8_t* header, FILE* f);
+int cartridge_load_ines_v1(Cartridge* c, uint8_t* header, FILE* f);
 RomFileFormat get_file_format(uint8_t* header);
 
-int cartridge_load(cartridge* c, const char* path) {
+int cartridge_load(Cartridge* c, const char* path) {
   if (!c || !path) {
     return -1;
   }
@@ -50,7 +50,7 @@ int cartridge_load(cartridge* c, const char* path) {
   return 0;
 }
 
-int cartridge_load_ines_v1(cartridge* c, uint8_t* header, FILE* f) {
+int cartridge_load_ines_v1(Cartridge* c, uint8_t* header, FILE* f) {
   c->prg_rom_size = header[4] * 16 * 1024;
   c->chr_rom_size = header[5] * 8 * 1024;
   c->mapper_num = (header[6] >> 4) | (header[7] & 0xF0);
@@ -114,7 +114,7 @@ int cartridge_load_ines_v1(cartridge* c, uint8_t* header, FILE* f) {
   return 0;
 }
 
-void cartridge_free(cartridge* c) {
+void cartridge_free(Cartridge* c) {
   if (!c) {
     return;
   }

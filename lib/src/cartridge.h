@@ -12,7 +12,7 @@ typedef enum {
   NT_MIRROR_VERTICAL = 1
 } NametableMirroring;
 
-typedef struct cartridge {
+typedef struct Cartridge {
   uint8_t* prg_rom;
   size_t prg_rom_size;
 
@@ -23,16 +23,16 @@ typedef struct cartridge {
   size_t chr_rom_size;
 
   uint8_t mapper_num;
-  mapper mapper;
+  Mapper mapper;
 
   NametableMirroring nt_mirroring;
   bool has_battery_prg_ram;
   bool has_trainer;
   bool uses_chr_ram;
-} cartridge;
+} Cartridge;
 
-int cartridge_load(cartridge* c, const char* path);
+int cartridge_load(Cartridge* c, const char* path);
 
-void cartridge_free(cartridge* c);
+void cartridge_free(Cartridge* c);
 
 #endif  // CARTRIDGE_H
