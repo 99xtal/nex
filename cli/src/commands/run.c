@@ -5,62 +5,61 @@
 
 #include "commands.h"
 
-void usage_run(const char *prog) {
-    fprintf(stderr,
-        "nex %s [options...] [ROM]\n"
-        "  -t     Enable tracing logs\n"
-        "  -h     Show usage\n"
-        "\n",
-        prog
-    );
+void usage_run(const char* prog) {
+  fprintf(stderr,
+          "nex %s [options...] [ROM]\n"
+          "  -t     Enable tracing logs\n"
+          "  -h     Show usage\n"
+          "\n",
+          prog);
 }
 
-int cmd_run(int argc, char **argv) {
-    int opt;
-    int tracing = 0;
+int cmd_run(int argc, char** argv) {
+  int opt;
+  int tracing = 0;
 
-    while ((opt = getopt(argc, argv, "ht")) != -1) {
-        switch (opt) {
-            case 't':
-                tracing = 1;
-                break;
-            case 'h':
-                usage_run(argv[0]);
-                return EXIT_SUCCESS;
-            default:
-                usage_run(argv[0]);
-                return EXIT_FAILURE;
-        }
-    }
-
-    if (optind >= argc) {
+  while ((opt = getopt(argc, argv, "ht")) != -1) {
+    switch (opt) {
+      case 't':
+        tracing = 1;
+        break;
+      case 'h':
         usage_run(argv[0]);
-        fprintf(stderr, "\nMissing ROM file\n");
+        return EXIT_SUCCESS;
+      default:
+        usage_run(argv[0]);
         return EXIT_FAILURE;
     }
+  }
 
-    const char *rom_path = argv[optind];
+  if (optind >= argc) {
+    usage_run(argv[0]);
+    fprintf(stderr, "\nMissing ROM file\n");
+    return EXIT_FAILURE;
+  }
 
-    nes *nes = nex_create();
-    if (!nes) {
-        fprintf(stderr, "Failed to initialize NES");
-        return EXIT_FAILURE;
-    }
-    
-    if (nex_load_rom(nes, rom_path) != 0) {
-        fprintf(stderr, "Invalid ROM file");
-        return EXIT_FAILURE;
-    }
-    // if (tracing) {
-    //     nes.cpu.trace = print_trace;
-    //     nes.cpu.trace_ctx = &nes;
-    // }
+  const char* rom_path = argv[optind];
 
-    nex_reset(nes);
+  nes* nes = nex_create();
+  if (!nes) {
+    fprintf(stderr, "Failed to initialize NES");
+    return EXIT_FAILURE;
+  }
 
-    while (1) {
-        nex_step(nes);
-    }
+  if (nex_load_rom(nes, rom_path) != 0) {
+    fprintf(stderr, "Invalid ROM file");
+    return EXIT_FAILURE;
+  }
+  // if (tracing) {
+  //     nes.cpu.trace = print_trace;
+  //     nes.cpu.trace_ctx = &nes;
+  // }
 
-    return EXIT_SUCCESS;
+  nex_reset(nes);
+
+  while (1) {
+    nex_step(nes);
+  }
+
+  return EXIT_SUCCESS;
 }
