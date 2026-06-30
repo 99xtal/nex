@@ -9,6 +9,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include "imfilebrowser.h"
+#include <nex/nes.h>
 
 #ifdef __APPLE__
 #define PRIMARY_MOD "Cmd"
@@ -25,6 +26,7 @@ struct Window {
 struct AppActions {
   void (*quit)(void* ctx);
   void (*load_rom)(void* ctx, const char* path);
+  void (*reset)(void* ctx);
 
   void* ctx;
 };
@@ -40,8 +42,15 @@ struct UiContext {
   UiState state;
 };
 
+struct Emulator {
+  bool is_running;
+
+  NES* nes;
+};
+
 struct App {
   Window window;
+  Emulator emulator;
   UiContext ui;
   AppActions actions;
 };
@@ -59,8 +68,18 @@ void app_quit(void* ctx) {
 void app_load_rom(void* ctx, const char* path) {
   App* app = (App*)ctx;
 
-  printf("Selected ROM: %s\n", path);
+  if (nex_load_rom(app->emulator.nes, path) != 0) {
+    // TODO: better error handling
+    fprintf(stderr, "NEX: Failed to load ROM\n");
+  }
+
   update_window_title(app, path);
+}
+
+void app_reset_emulator(void* ctx) {
+  App* app = (App*)ctx;
+
+  nex_reset(app->emulator.nes);
 }
 
 void glfw_error_callback(int error, const char* description) {
@@ -102,6 +121,8 @@ int actions_init(App& app) {
   app.actions = {
       .quit = app_quit,
       .load_rom = app_load_rom,
+      .reset = app_reset_emulator,
+
       .ctx = &app,
   };
   return 0;
@@ -129,8 +150,24 @@ int ui_init(UiContext& ui, Window& window, AppActions& actions) {
   return 0;
 }
 
+int emulator_init(Emulator& emulator) {
+  emulator = {
+      .is_running = false,
+  };
+  emulator.nes = nex_create();
+  if (!emulator.nes) {
+    return -1;
+  }
+
+  return 0;
+}
+
 int app_init(App& app) {
   if (window_init(app.window) != 0) {
+    return -1;
+  }
+
+  if (emulator_init(app.emulator) != 0) {
     return -1;
   }
 
@@ -179,6 +216,8 @@ void app_destroy(App& app) {
 
   glfwDestroyWindow(app.window.handle);
   glfwTerminate();
+
+  nex_free(app.emulator.nes);
 }
 
 int main() {
@@ -209,6 +248,10 @@ void handle_shortcuts(UiContext& ui) {
 
   if (mod && ImGui::IsKeyPressed(ImGuiKey_Q)) {
     ui.actions->quit(ui.actions->ctx);
+  }
+
+  if (mod && ImGui::IsKeyPressed(ImGuiKey_R)) {
+    ui.actions->reset(ui.actions->ctx);
   }
 }
 
@@ -241,8 +284,8 @@ void show_menu_bar(UiContext& ui) {
     if (ImGui::BeginMenu("Emulation")) {
       ImGui::MenuItem("Pause", nullptr, nullptr);
 
-      if (ImGui::MenuItem("Reset")) {
-        // nex_reset(nes);
+      if (ImGui::MenuItem("Reset", PRIMARY_MOD "+R")) {
+        ui.actions->reset(ui.actions->ctx);
       }
 
       ImGui::EndMenu();

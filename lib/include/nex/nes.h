@@ -3,6 +3,10 @@
 
 #include <lib6502/6502.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct NES NES;
 
 NES* nex_create(void);
@@ -14,5 +18,9 @@ void nex_reset(NES* n);
 void nex_step(NES* n);
 
 void nex_free(NES* n);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
