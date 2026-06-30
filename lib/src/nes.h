@@ -8,7 +8,7 @@
 #include "ppu.h"
 
 struct NES {
-  cpu6502 cpu;
+  CPU6502 cpu;
   uint8_t wram[0x0800];  // 2KB work RAM for CPU
 
   PPU ppu;
