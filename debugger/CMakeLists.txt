@@ -9,6 +9,8 @@ add_executable(nex-debug
 target_link_libraries(nex-debug
     PRIVATE
         nex
+        glfw
+        glad
 )
 
 target_compile_features(nex-debug
