@@ -43,5 +43,41 @@ target_link_libraries(imgui PUBLIC
 
 add_subdirectory(external/lib6502)
 add_subdirectory(lib)
-add_subdirectory(cli)
-add_subdirectory(debugger)
+
+file(GLOB_RECURSE NEX_SOURCES CONFIGURE_DEPENDS
+    "src/*.cpp"
+)
+
+add_executable(nex-app
+    ${NEX_SOURCES}
+)
+
+target_include_directories(nex-app PRIVATE
+    ${PROJECT_SOURCE_DIR}/external/imgui-filebrowser
+)
+
+target_link_libraries(nex-app
+    PRIVATE
+        nex
+        glfw
+        glad
+        imgui
+)
+
+target_compile_features(nex-app
+    PRIVATE
+        cxx_std_20
+)
+
+target_compile_options(nex-app
+    PRIVATE
+        -g
+        -O0
+        -Wall
+        -Wextra
+        -Wpedantic
+)
+
+set_target_properties(nex-app PROPERTIES
+    OUTPUT_NAME nex
+)
