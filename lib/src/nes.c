@@ -207,6 +207,18 @@ void nex_step(NES* n) {
   n->total_cpu_cycles += cpu_cycles;
 }
 
+NexCpuState nex_get_cpu_state(NES* n) {
+  return (NexCpuState){
+      .PC = n->cpu.PC,
+      .A = n->cpu.A,
+      .X = n->cpu.X,
+      .Y = n->cpu.Y,
+      .P = n->cpu.status,
+      .SP = n->cpu.SP,
+      .total_cycles = n->total_cpu_cycles,
+  };
+}
+
 void nex_free(NES* n) {
   if (!n) {
     return;
