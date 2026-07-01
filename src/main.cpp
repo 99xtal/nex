@@ -28,6 +28,7 @@ struct AppActions {
   void (*quit)(void* ctx);
   void (*load_rom)(void* ctx, const char* path);
   void (*reset)(void* ctx);
+  void (*step_instr)(void* ctx);
 
   void* ctx;
 };
@@ -95,6 +96,12 @@ void app_reset_emulator(void* ctx) {
   nex_reset(app->emulator.nes);
 }
 
+void app_step_instr(void* ctx) {
+  App* app = (App*)ctx;
+
+  nex_step(app->emulator.nes);
+}
+
 void glfw_error_callback(int error, const char* description) {
   fprintf(stderr, "GLFW Error %d: %s\n", error, description);
 }
@@ -135,6 +142,8 @@ int actions_init(App& app) {
       .quit = app_quit,
       .load_rom = app_load_rom,
       .reset = app_reset_emulator,
+
+      .step_instr = app_step_instr,
 
       .ctx = &app,
   };
@@ -284,7 +293,9 @@ void handle_shortcuts(UiContext& ui) {
   }
 
   bool mod = io.KeyCtrl || io.KeySuper;  // Ctrl on Windows/Linux, Cmd on macOS
+  bool shift = io.KeyShift;
 
+  // File actions
   if (mod && ImGui::IsKeyPressed(ImGuiKey_O)) {
     ui.state.open_rom_dialog.Open();
   }
@@ -293,8 +304,26 @@ void handle_shortcuts(UiContext& ui) {
     ui.actions->quit(ui.actions->ctx);
   }
 
+  // View actions
+  if (shift && mod && ImGui::IsKeyPressed(ImGuiKey_C)) {
+    ui.state.cpu_pane_visible = !ui.state.cpu_pane_visible;
+  }
+
+  if (shift && mod && ImGui::IsKeyPressed(ImGuiKey_M)) {
+    ui.state.memory_pane_visible = !ui.state.memory_pane_visible;
+  }
+
+  // Debug actions
   if (mod && ImGui::IsKeyPressed(ImGuiKey_R)) {
     ui.actions->reset(ui.actions->ctx);
+  }
+
+  if (ImGui::IsKeyPressed(ImGuiKey_F5)) {
+    ui.state.is_running = !ui.state.is_running;
+  }
+
+  if (ImGui::IsKeyPressed(ImGuiKey_F11)) {
+    ui.actions->step_instr(ui.actions->ctx);
   }
 }
 
@@ -326,19 +355,27 @@ void show_menu_bar(UiContext& ui) {
     }
 
     if (ImGui::BeginMenu("View")) {
-      ImGui::MenuItem("CPU", nullptr, &ui.state.cpu_pane_visible);
+      ImGui::MenuItem("CPU", "Shift+" PRIMARY_MOD "+C",
+                      &ui.state.cpu_pane_visible);
       ImGui::MenuItem("PPU", nullptr);
-      ImGui::MenuItem("Memory", nullptr, &ui.state.memory_pane_visible);
+      ImGui::MenuItem("Memory", "Shift+" PRIMARY_MOD "+M",
+                      &ui.state.memory_pane_visible);
       ImGui::EndMenu();
     }
 
     if (ImGui::BeginMenu("Emulation")) {
-      if (ImGui::MenuItem(ui.state.is_running ? "Pause" : "Resume")) {
+      if (ImGui::MenuItem(ui.state.is_running ? "Pause" : "Resume", "F5")) {
         ui.state.is_running = !ui.state.is_running;
       }
 
       if (ImGui::MenuItem("Reset", PRIMARY_MOD "+R")) {
         ui.actions->reset(ui.actions->ctx);
+      }
+
+      ImGui::Separator();
+
+      if (ImGui::MenuItem("Step Instruction", "F11")) {
+        ui.actions->step_instr(ui.actions->ctx);
       }
 
       ImGui::EndMenu();
@@ -374,7 +411,6 @@ void show_cpu_pane(UiContext& ui) {
   ImGui::Text("P   : %02X", state.P);
   ImGui::Text("SP  : %02X", state.SP);
   ImGui::Separator();
-
   ImGui::Text("PPU : (%03d, %03d)", state.scanline, state.dot);
   ImGui::SameLine();
   ImGui::Text("CYC : %llu", state.total_cycles);
@@ -386,7 +422,7 @@ void show_cpu_pane(UiContext& ui) {
   }
 
   if (ImGui::Button("Step")) {
-    nex_step(ui.emu->nes);
+    ui.actions->step_instr(ui.actions->ctx);
   }
   ImGui::SameLine();
   if (ImGui::Button("Reset")) {
@@ -420,7 +456,7 @@ void show_cpu_pane(UiContext& ui) {
 }
 
 void show_memory_pane(UiContext& ui) {
-  if (!ImGui::Begin("Memory", &ui.state.cpu_pane_visible)) {
+  if (!ImGui::Begin("Memory", &ui.state.memory_pane_visible)) {
     ImGui::End();
     return;
   }
