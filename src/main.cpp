@@ -76,6 +76,8 @@ void app_load_rom(void* ctx, const char* path) {
     fprintf(stderr, "NEX: Failed to load ROM\n");
   }
 
+  nex_reset(app->emulator.nes);
+
   app->ui.state.is_rom_loaded = true;
   update_window_title(app, path);
 }
@@ -84,7 +86,6 @@ void app_reset_emulator(void* ctx) {
   App* app = (App*)ctx;
 
   nex_reset(app->emulator.nes);
-  app->ui.state.is_running = true;
 }
 
 void glfw_error_callback(int error, const char* description) {
@@ -198,9 +199,9 @@ int app_run(App& app) {
     // rendering
     show_ui(app.ui);
 
-    // if (app.ui.state.is_rom_loaded && app.ui.state.is_running) {
-    //   nex_step(app.emulator.nes);
-    // }
+    if (app.ui.state.is_rom_loaded && app.ui.state.is_running) {
+      nex_step(app.emulator.nes);
+    }
 
     ImGui::Render();
 
@@ -323,7 +324,7 @@ void show_cpu_pane(UiContext& ui) {
     return;
   }
 
-  ImGui::SeparatorText("Status");
+  ImGui::SeparatorText("Registers");
 
   NexCpuState state = nex_get_cpu_state(ui.emu->nes);
 
@@ -333,16 +334,28 @@ void show_cpu_pane(UiContext& ui) {
   ImGui::Text("Y   : %02X", state.Y);
   ImGui::Text("P   : %02X", state.P);
   ImGui::Text("SP  : %02X", state.SP);
+  ImGui::Separator();
+
+  ImGui::Text("PPU : (%03d, %03d)", state.scanline, state.dot);
+  ImGui::SameLine();
   ImGui::Text("CYC : %llu", state.total_cycles);
 
   ImGui::Separator();
 
+  if (!ui.state.is_rom_loaded) {
+    ImGui::BeginDisabled(true);
+  }
+
   if (ImGui::Button("Step")) {
     nex_step(ui.emu->nes);
   }
-
+  ImGui::SameLine();
   if (ImGui::Button("Reset")) {
-    nex_reset(ui.emu->nes);
+    ui.actions->reset(ui.actions->ctx);
+  }
+
+  if (!ui.state.is_rom_loaded) {
+    ImGui::EndDisabled();
   }
 
   if (ui.state.is_rom_loaded) {

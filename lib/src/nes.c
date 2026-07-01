@@ -169,7 +169,7 @@ int nex_load_rom(NES* n, const char* path) {
 }
 
 void nex_reset(NES* n) {
-  if (!n) {
+  if (!n || !n->cartridge->prg_rom) {
     return;
   }
 
@@ -216,6 +216,8 @@ NexCpuState nex_get_cpu_state(NES* n) {
       .Y = n->cpu.Y,
       .P = n->cpu.status,
       .SP = n->cpu.SP,
+      .scanline = n->ppu.scanline,
+      .dot = n->ppu.dot,
       .total_cycles = n->total_cpu_cycles,
   };
 }

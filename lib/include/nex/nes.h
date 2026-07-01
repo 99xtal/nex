@@ -26,6 +26,11 @@ typedef struct NexCpuState {
   uint8_t Y;
   uint8_t P;
   uint8_t SP;
+
+  // PPU statue
+  int16_t scanline;
+  uint16_t dot;
+
   uint64_t total_cycles;
 } NexCpuState;
 
