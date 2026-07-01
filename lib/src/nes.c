@@ -241,6 +241,14 @@ bool nex_disassemble_at(NES* n, uint16_t addr, NexDisasmLine* out) {
   return true;
 }
 
+void nex_read_wram(const NES* n, uint8_t dst[NEX_WRAM_SIZE]) {
+  if (!n || !dst) {
+    return;
+  }
+
+  memcpy(dst, n->wram, NEX_WRAM_SIZE);
+}
+
 void nex_free(NES* n) {
   if (!n) {
     return;

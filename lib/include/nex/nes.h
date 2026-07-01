@@ -7,6 +7,8 @@
 extern "C" {
 #endif
 
+#define NEX_WRAM_SIZE 0x2000
+
 typedef struct NES NES;
 
 NES* nex_create(void);
@@ -45,6 +47,8 @@ typedef struct NexDisasmLine {
 } NexDisasmLine;
 
 bool nex_disassemble_at(NES* n, uint16_t addr, NexDisasmLine* out);
+
+void nex_read_wram(const NES* n, uint8_t dst[NEX_WRAM_SIZE]);
 
 #ifdef __cplusplus
 }

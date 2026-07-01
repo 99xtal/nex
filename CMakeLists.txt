@@ -54,6 +54,7 @@ add_executable(nex-app
 
 target_include_directories(nex-app PRIVATE
     ${PROJECT_SOURCE_DIR}/external/imgui-filebrowser
+    ${PROJECT_SOURCE_DIR}/external/imgui_memory_editor
 )
 
 target_link_libraries(nex-app

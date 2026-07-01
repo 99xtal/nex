@@ -8,6 +8,7 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "imgui_memory_editor.h"
 #include "imfilebrowser.h"
 #include <nex/nes.h>
 
@@ -33,9 +34,14 @@ struct AppActions {
 
 struct UiState {
   ImGui::FileBrowser open_rom_dialog;
+
   bool cpu_pane_visible = false;
+  bool memory_pane_visible = false;
+
   bool is_running = false;
   bool is_rom_loaded = false;
+
+  MemoryEditor wram_mem_edit;
 
   UiState() : open_rom_dialog(0) {}
 };
@@ -60,6 +66,7 @@ struct App {
 void show_ui(UiContext& ui);
 void show_menu_bar(UiContext& ui);
 void show_cpu_pane(UiContext& ui);
+void show_memory_pane(UiContext& ui);
 void update_window_title(App* app, const char* rom_path);
 
 void app_quit(void* ctx) {
@@ -280,6 +287,10 @@ void show_ui(UiContext& ui) {
   if (ui.state.cpu_pane_visible) {
     show_cpu_pane(ui);
   }
+
+  if (ui.state.memory_pane_visible) {
+    show_memory_pane(ui);
+  }
 }
 
 void show_menu_bar(UiContext& ui) {
@@ -298,8 +309,8 @@ void show_menu_bar(UiContext& ui) {
 
     if (ImGui::BeginMenu("View")) {
       ImGui::MenuItem("CPU", nullptr, &ui.state.cpu_pane_visible);
-      ImGui::MenuItem("PPU", nullptr, nullptr);
-      ImGui::MenuItem("Memory", nullptr, nullptr);
+      ImGui::MenuItem("PPU", nullptr);
+      ImGui::MenuItem("Memory", nullptr, &ui.state.memory_pane_visible);
       ImGui::EndMenu();
     }
 
@@ -385,6 +396,33 @@ void show_cpu_pane(UiContext& ui) {
 
     ImGui::Text("%04X  %-8s %-3s %s", line.addr, bytes_str, line.mnemonic,
                 line.operand);
+  }
+
+  ImGui::End();
+}
+
+void show_memory_pane(UiContext& ui) {
+  if (!ImGui::Begin("Memory", &ui.state.cpu_pane_visible)) {
+    ImGui::End();
+    return;
+  }
+
+  ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
+  if (ImGui::BeginTabBar("Memory Locations", tab_bar_flags)) {
+    if (ImGui::BeginTabItem("CPU WRAM")) {
+      uint8_t data[NEX_WRAM_SIZE];
+      nex_read_wram(ui.emu->nes, data);
+      ui.state.wram_mem_edit.DrawContents(data, NEX_WRAM_SIZE);
+
+      ImGui::EndTabItem();
+    }
+    if (ImGui::BeginTabItem("PPU VRAM")) {
+      ImGui::EndTabItem();
+    }
+    if (ImGui::BeginTabItem("CHR ROM")) {
+      ImGui::EndTabItem();
+    }
+    ImGui::EndTabBar();
   }
 
   ImGui::End();
