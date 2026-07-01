@@ -43,6 +43,7 @@ struct UiState {
   bool is_rom_loaded = false;
 
   MemoryEditor wram_mem_edit;
+  MemoryEditor vram_mem_edit;
 
   UiState() : open_rom_dialog(0) {}
 };
@@ -471,6 +472,10 @@ void show_memory_pane(UiContext& ui) {
       ImGui::EndTabItem();
     }
     if (ImGui::BeginTabItem("PPU VRAM")) {
+      uint8_t data[NEX_VRAM_SIZE];
+      nex_read_vram(ui.emu->nes, data);
+      ui.state.vram_mem_edit.DrawContents(data, NEX_VRAM_SIZE);
+
       ImGui::EndTabItem();
     }
     if (ImGui::BeginTabItem("CHR ROM")) {

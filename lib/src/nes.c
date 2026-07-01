@@ -251,6 +251,14 @@ void nex_read_wram(const NES* n, uint8_t dst[NEX_WRAM_SIZE]) {
   memcpy(dst, n->wram, NEX_WRAM_SIZE);
 }
 
+void nex_read_vram(const NES* n, uint8_t dst[NEX_VRAM_SIZE]) {
+  if (!n || !dst) {
+    return;
+  }
+
+  memcpy(dst, n->vram, NEX_VRAM_SIZE);
+}
+
 void nex_free(NES* n) {
   if (!n) {
     return;

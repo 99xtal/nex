@@ -9,6 +9,7 @@ extern "C" {
 
 #define NEX_CPU_HZ 1789773.0
 #define NEX_WRAM_SIZE 0x0800
+#define NEX_VRAM_SIZE 0x0800
 
 typedef struct NES NES;
 
@@ -50,6 +51,8 @@ typedef struct NexDisasmLine {
 bool nex_disassemble_at(NES* n, uint16_t addr, NexDisasmLine* out);
 
 void nex_read_wram(const NES* n, uint8_t dst[NEX_WRAM_SIZE]);
+
+void nex_read_vram(const NES* n, uint8_t dst[NEX_VRAM_SIZE]);
 
 #ifdef __cplusplus
 }
