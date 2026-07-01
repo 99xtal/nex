@@ -1,6 +1,7 @@
 #include "nes.h"
 
 #include <nex/nes.h>
+#include <stdio.h>
 #include <string.h>
 
 int nex_init(NES* n);
@@ -217,6 +218,25 @@ NexCpuState nex_get_cpu_state(NES* n) {
       .SP = n->cpu.SP,
       .total_cycles = n->total_cpu_cycles,
   };
+}
+
+bool nex_disassemble_at(NES* n, uint16_t addr, NexDisasmLine* out) {
+  CPU6502DisasmLine line;
+
+  if (!cpu6502_disasm_at(&n->cpu, addr, &line)) {
+    return false;
+  }
+
+  out->addr = line.addr;
+  out->bytes_count = line.bytes_count;
+  out->mnemonic = line.mnemonic;
+  snprintf(out->operand, sizeof(out->operand), "%s", line.operand);
+
+  for (uint8_t i = 0; i < line.bytes_count; i++) {
+    out->bytes[i] = line.bytes[i];
+  }
+
+  return true;
 }
 
 void nex_free(NES* n) {

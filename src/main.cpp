@@ -198,9 +198,9 @@ int app_run(App& app) {
     // rendering
     show_ui(app.ui);
 
-    if (app.ui.state.is_rom_loaded && app.ui.state.is_running) {
-      nex_step(app.emulator.nes);
-    }
+    // if (app.ui.state.is_rom_loaded && app.ui.state.is_running) {
+    //   nex_step(app.emulator.nes);
+    // }
 
     ImGui::Render();
 
@@ -323,6 +323,8 @@ void show_cpu_pane(UiContext& ui) {
     return;
   }
 
+  ImGui::SeparatorText("Status");
+
   NexCpuState state = nex_get_cpu_state(ui.emu->nes);
 
   ImGui::Text("PC  : %04X", state.PC);
@@ -332,6 +334,35 @@ void show_cpu_pane(UiContext& ui) {
   ImGui::Text("P   : %02X", state.P);
   ImGui::Text("SP  : %02X", state.SP);
   ImGui::Text("CYC : %llu", state.total_cycles);
+
+  ImGui::Separator();
+
+  if (ImGui::Button("Step")) {
+    nex_step(ui.emu->nes);
+  }
+
+  if (ImGui::Button("Reset")) {
+    nex_reset(ui.emu->nes);
+  }
+
+  if (ui.state.is_rom_loaded) {
+    ImGui::SeparatorText("Disassembly");
+    NexDisasmLine line;
+    if (!nex_disassemble_at(ui.emu->nes, state.PC, &line)) {
+      // handle error
+    }
+
+    char bytes_str[10];
+    size_t pos = 0;
+
+    for (uint8_t i = 0; i < line.bytes_count; i++) {
+      pos += snprintf(bytes_str + pos, sizeof(bytes_str) - pos, "%02X ",
+                      line.bytes[i]);
+    }
+
+    ImGui::Text("%04X  %-8s %-3s %s", line.addr, bytes_str, line.mnemonic,
+                line.operand);
+  }
 
   ImGui::End();
 }

@@ -31,6 +31,16 @@ typedef struct NexCpuState {
 
 NexCpuState nex_get_cpu_state(NES* n);
 
+typedef struct NexDisasmLine {
+  uint16_t addr;
+  uint8_t bytes[3];
+  size_t bytes_count;
+  char* mnemonic;
+  char operand[25];
+} NexDisasmLine;
+
+bool nex_disassemble_at(NES* n, uint16_t addr, NexDisasmLine* out);
+
 #ifdef __cplusplus
 }
 #endif
