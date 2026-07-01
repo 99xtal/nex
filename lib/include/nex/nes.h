@@ -7,7 +7,8 @@
 extern "C" {
 #endif
 
-#define NEX_WRAM_SIZE 0x2000
+#define NEX_CPU_HZ 1789773.0
+#define NEX_WRAM_SIZE 0x0800
 
 typedef struct NES NES;
 
@@ -17,7 +18,7 @@ int nex_load_rom(NES* n, const char* path);
 
 void nex_reset(NES* n);
 
-void nex_step(NES* n);
+int nex_step(NES* n);
 
 void nex_free(NES* n);
 

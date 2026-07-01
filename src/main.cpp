@@ -112,8 +112,8 @@ int window_init(Window& window) {
 
   float main_scale =
       ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor());
-  window.width = 256 * 3 * main_scale;
-  window.height = 224 * 3 * main_scale;
+  window.width = 256 * 2 * main_scale;
+  window.height = 224 * 2 * main_scale;
   window.handle =
       glfwCreateWindow(window.width, window.height, "nex", NULL, NULL);
   if (!window.handle) {
@@ -195,7 +195,18 @@ int app_init(App& app) {
 }
 
 int app_run(App& app) {
+  double last_time = glfwGetTime();
+  double cycle_accumulator = 0.0;
+
   while (!glfwWindowShouldClose(app.window.handle)) {
+    double now = glfwGetTime();
+    double dt = now - last_time;
+    last_time = now;
+
+    if (dt > 0.25) {
+      dt = 0.25;
+    }
+
     // Poll events
     glfwPollEvents();
 
@@ -208,7 +219,14 @@ int app_run(App& app) {
     show_ui(app.ui);
 
     if (app.ui.state.is_rom_loaded && app.ui.state.is_running) {
-      nex_step(app.emulator.nes);
+      cycle_accumulator += dt * NEX_CPU_HZ;
+
+      while (cycle_accumulator >= 1.0) {
+        int cpu_cycles = nex_step(app.emulator.nes);
+        cycle_accumulator -= cpu_cycles;
+      }
+    } else {
+      cycle_accumulator = 0.0;
     }
 
     ImGui::Render();

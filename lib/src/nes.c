@@ -183,7 +183,7 @@ void nex_reset(NES* n) {
   n->total_cpu_cycles += cpu_cycles;
 }
 
-void nex_step(NES* n) {
+int nex_step(NES* n) {
   int cpu_cycles;
 
   if (n->ppu.nmi_pending) {
@@ -206,6 +206,8 @@ void nex_step(NES* n) {
   }
 
   n->total_cpu_cycles += cpu_cycles;
+
+  return cpu_cycles;
 }
 
 NexCpuState nex_get_cpu_state(NES* n) {
