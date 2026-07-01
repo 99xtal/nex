@@ -116,14 +116,20 @@ uint8_t ppu_cpu_read(PPU* ppu, uint8_t reg) {
   switch (reg) {
     case 2: {
       // PPUSTATUS
-      uint8_t result = ppu->status;
+      uint8_t result = (ppu->status & 0xE0) | (ppu->open_bus & 0x1F);
+
+      ppu->open_bus = result;
+
       ppu->status &= ~PPUSTATUS_VBLANK;
       ppu->w = 0;
       return result;
     }
     case 4: {
       // OAMDATA
-      return ppu->oam[ppu->oam_addr];
+      uint8_t value = ppu->oam[ppu->oam_addr];
+      ppu->open_bus = value;
+      return value;
+      ;
     }
     case 7: {
       uint8_t result;
@@ -138,14 +144,17 @@ uint8_t ppu_cpu_read(PPU* ppu, uint8_t reg) {
       }
 
       ppu->v += (ppu->ctrl & PPUCTRL_VRAM_INC) ? 32 : 1;
+      ppu->open_bus = result;
       return result;
     }
     default:
-      return 0;
+      return ppu->open_bus;
   }
 }
 
 void ppu_cpu_write(PPU* ppu, uint8_t reg, uint8_t value) {
+  ppu->open_bus = value;
+
   switch (reg) {
     case 0: {
       // PPUCTRL

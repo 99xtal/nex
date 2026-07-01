@@ -116,6 +116,8 @@ typedef struct PPU {
 
   uint8_t data_buffer;  // for PPUDATA reads
 
+  uint8_t open_bus;
+
   // callbacks for PPU address-space reads/writes: $0000-$3FFF
   PPUReadFn read;
   PPUWriteFn write;
