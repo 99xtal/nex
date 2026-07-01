@@ -2,6 +2,7 @@
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
 #include <stdio.h>
+#include <getopt.h>
 
 #include <iostream>
 
@@ -70,6 +71,15 @@ void show_menu_bar(UiContext& ui);
 void show_cpu_pane(UiContext& ui);
 void show_memory_pane(UiContext& ui);
 void update_window_title(App* app, const char* rom_path);
+
+void usage(const char* prog) {
+  fprintf(stderr,
+          "Usage: %s [ROM]\n"
+          "  -v     Show version\n"
+          "  -h     Show usage\n"
+          "\n",
+          prog);
+}
 
 void app_quit(void* ctx) {
   App* app = (App*)ctx;
@@ -273,10 +283,39 @@ void app_destroy(App& app) {
   nex_free(app.emulator.nes);
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+  int opt;
+  while ((opt = getopt(argc, argv, "vh")) != -1) {
+    switch (opt) {
+      case 'v':
+        printf("0.1.0\n");
+        return EXIT_SUCCESS;
+      case 'h':
+        usage(argv[0]);
+        return EXIT_SUCCESS;
+      default:
+        usage(argv[0]);
+        return EXIT_FAILURE;
+    }
+  }
+
+  int remaining = argc - optind;
+
+  if (remaining > 1) {
+    fprintf(stderr, "error: expected at most one ROM file\n");
+    usage(argv[0]);
+    return EXIT_FAILURE;
+  }
+
+  const char* rom_path = (remaining == 1) ? argv[optind] : NULL;
+
   App app{};
   if (app_init(app) != 0) {
     return EXIT_FAILURE;
+  }
+
+  if (rom_path) {
+    app_load_rom(&app, rom_path);
   }
 
   app_run(app);
