@@ -33,19 +33,21 @@ struct AppActions {
 
 struct UiState {
   ImGui::FileBrowser open_rom_dialog;
+  bool cpu_pane_visible = false;
+  bool is_running = false;
+  bool is_rom_loaded = false;
 
   UiState() : open_rom_dialog(0) {}
 };
 
-struct UiContext {
-  AppActions* actions;
-  UiState state;
+struct Emulator {
+  NES* nes;
 };
 
-struct Emulator {
-  bool is_running;
-
-  NES* nes;
+struct UiContext {
+  AppActions* actions;
+  Emulator* emu;
+  UiState state;
 };
 
 struct App {
@@ -57,6 +59,7 @@ struct App {
 
 void show_ui(UiContext& ui);
 void show_menu_bar(UiContext& ui);
+void show_cpu_pane(UiContext& ui);
 void update_window_title(App* app, const char* rom_path);
 
 void app_quit(void* ctx) {
@@ -73,6 +76,7 @@ void app_load_rom(void* ctx, const char* path) {
     fprintf(stderr, "NEX: Failed to load ROM\n");
   }
 
+  app->ui.state.is_rom_loaded = true;
   update_window_title(app, path);
 }
 
@@ -80,6 +84,7 @@ void app_reset_emulator(void* ctx) {
   App* app = (App*)ctx;
 
   nex_reset(app->emulator.nes);
+  app->ui.state.is_running = true;
 }
 
 void glfw_error_callback(int error, const char* description) {
@@ -128,7 +133,7 @@ int actions_init(App& app) {
   return 0;
 }
 
-int ui_init(UiContext& ui, Window& window, AppActions& actions) {
+int ui_init(UiContext& ui, Window& window, AppActions& actions, Emulator& emu) {
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
 
@@ -146,14 +151,12 @@ int ui_init(UiContext& ui, Window& window, AppActions& actions) {
   ui.state.open_rom_dialog.SetTypeFilters({".nes"});
 
   ui.actions = &actions;
+  ui.emu = &emu;
 
   return 0;
 }
 
 int emulator_init(Emulator& emulator) {
-  emulator = {
-      .is_running = false,
-  };
   emulator.nes = nex_create();
   if (!emulator.nes) {
     return -1;
@@ -175,7 +178,7 @@ int app_init(App& app) {
     return -1;
   }
 
-  if (ui_init(app.ui, app.window, app.actions) != 0) {
+  if (ui_init(app.ui, app.window, app.actions, app.emulator) != 0) {
     return -1;
   }
 
@@ -194,6 +197,10 @@ int app_run(App& app) {
 
     // rendering
     show_ui(app.ui);
+
+    if (app.ui.state.is_rom_loaded && app.ui.state.is_running) {
+      nex_step(app.emulator.nes);
+    }
 
     ImGui::Render();
 
@@ -258,6 +265,10 @@ void handle_shortcuts(UiContext& ui) {
 void show_ui(UiContext& ui) {
   handle_shortcuts(ui);
   show_menu_bar(ui);
+
+  if (ui.state.cpu_pane_visible) {
+    show_cpu_pane(ui);
+  }
 }
 
 void show_menu_bar(UiContext& ui) {
@@ -275,14 +286,16 @@ void show_menu_bar(UiContext& ui) {
     }
 
     if (ImGui::BeginMenu("View")) {
-      ImGui::MenuItem("CPU", nullptr, nullptr);
+      ImGui::MenuItem("CPU", nullptr, &ui.state.cpu_pane_visible);
       ImGui::MenuItem("PPU", nullptr, nullptr);
       ImGui::MenuItem("Memory", nullptr, nullptr);
       ImGui::EndMenu();
     }
 
     if (ImGui::BeginMenu("Emulation")) {
-      ImGui::MenuItem("Pause", nullptr, nullptr);
+      if (ImGui::MenuItem(ui.state.is_running ? "Pause" : "Resume")) {
+        ui.state.is_running = !ui.state.is_running;
+      }
 
       if (ImGui::MenuItem("Reset", PRIMARY_MOD "+R")) {
         ui.actions->reset(ui.actions->ctx);
@@ -302,6 +315,25 @@ void show_menu_bar(UiContext& ui) {
         ui.state.open_rom_dialog.GetSelected().string().c_str());
     ui.state.open_rom_dialog.ClearSelected();
   }
+}
+
+void show_cpu_pane(UiContext& ui) {
+  if (!ImGui::Begin("CPU", &ui.state.cpu_pane_visible)) {
+    ImGui::End();
+    return;
+  }
+
+  NexCpuState state = nex_get_cpu_state(ui.emu->nes);
+
+  ImGui::Text("PC  : %04X", state.PC);
+  ImGui::Text("A   : %02X", state.A);
+  ImGui::Text("X   : %02X", state.X);
+  ImGui::Text("Y   : %02X", state.Y);
+  ImGui::Text("P   : %02X", state.P);
+  ImGui::Text("SP  : %02X", state.SP);
+  ImGui::Text("CYC : %llu", state.total_cycles);
+
+  ImGui::End();
 }
 
 void update_window_title(App* app, const char* rom_path) {

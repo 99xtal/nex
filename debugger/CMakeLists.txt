@@ -25,6 +25,8 @@ target_compile_features(nex-debug
 
 target_compile_options(nex-debug
     PRIVATE
+        -g
+        -O0
         -Wall
         -Wextra
         -Wpedantic
