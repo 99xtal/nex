@@ -26,10 +26,25 @@ typedef struct NexCpuState {
   uint8_t Y;
   uint8_t P;
   uint8_t SP;
+
+  // PPU statue
+  int16_t scanline;
+  uint16_t dot;
+
   uint64_t total_cycles;
 } NexCpuState;
 
 NexCpuState nex_get_cpu_state(NES* n);
+
+typedef struct NexDisasmLine {
+  uint16_t addr;
+  uint8_t bytes[3];
+  size_t bytes_count;
+  char* mnemonic;
+  char operand[25];
+} NexDisasmLine;
+
+bool nex_disassemble_at(NES* n, uint16_t addr, NexDisasmLine* out);
 
 #ifdef __cplusplus
 }

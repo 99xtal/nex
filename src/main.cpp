@@ -76,6 +76,8 @@ void app_load_rom(void* ctx, const char* path) {
     fprintf(stderr, "NEX: Failed to load ROM\n");
   }
 
+  nex_reset(app->emulator.nes);
+
   app->ui.state.is_rom_loaded = true;
   update_window_title(app, path);
 }
@@ -84,7 +86,6 @@ void app_reset_emulator(void* ctx) {
   App* app = (App*)ctx;
 
   nex_reset(app->emulator.nes);
-  app->ui.state.is_running = true;
 }
 
 void glfw_error_callback(int error, const char* description) {
@@ -323,6 +324,8 @@ void show_cpu_pane(UiContext& ui) {
     return;
   }
 
+  ImGui::SeparatorText("Registers");
+
   NexCpuState state = nex_get_cpu_state(ui.emu->nes);
 
   ImGui::Text("PC  : %04X", state.PC);
@@ -331,7 +334,48 @@ void show_cpu_pane(UiContext& ui) {
   ImGui::Text("Y   : %02X", state.Y);
   ImGui::Text("P   : %02X", state.P);
   ImGui::Text("SP  : %02X", state.SP);
+  ImGui::Separator();
+
+  ImGui::Text("PPU : (%03d, %03d)", state.scanline, state.dot);
+  ImGui::SameLine();
   ImGui::Text("CYC : %llu", state.total_cycles);
+
+  ImGui::Separator();
+
+  if (!ui.state.is_rom_loaded) {
+    ImGui::BeginDisabled(true);
+  }
+
+  if (ImGui::Button("Step")) {
+    nex_step(ui.emu->nes);
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Reset")) {
+    ui.actions->reset(ui.actions->ctx);
+  }
+
+  if (!ui.state.is_rom_loaded) {
+    ImGui::EndDisabled();
+  }
+
+  if (ui.state.is_rom_loaded) {
+    ImGui::SeparatorText("Disassembly");
+    NexDisasmLine line;
+    if (!nex_disassemble_at(ui.emu->nes, state.PC, &line)) {
+      // handle error
+    }
+
+    char bytes_str[10];
+    size_t pos = 0;
+
+    for (uint8_t i = 0; i < line.bytes_count; i++) {
+      pos += snprintf(bytes_str + pos, sizeof(bytes_str) - pos, "%02X ",
+                      line.bytes[i]);
+    }
+
+    ImGui::Text("%04X  %-8s %-3s %s", line.addr, bytes_str, line.mnemonic,
+                line.operand);
+  }
 
   ImGui::End();
 }
