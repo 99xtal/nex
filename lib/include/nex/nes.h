@@ -19,6 +19,8 @@ int nex_load_rom(NES* n, const char* path);
 
 void nex_reset(NES* n);
 
+void nex_tick(NES* n);
+
 int nex_step(NES* n);
 
 void nex_free(NES* n);

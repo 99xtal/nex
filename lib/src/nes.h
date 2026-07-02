@@ -17,6 +17,9 @@ struct NES {
   Cartridge* cartridge;
 
   uint64_t total_cpu_cycles;
+
+  // hack: used for mocking cycle timing for nex_tick();
+  int cpu_cycles_remaining;
 };
 
 #endif  // NES_H

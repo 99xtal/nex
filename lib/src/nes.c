@@ -183,6 +183,37 @@ void nex_reset(NES* n) {
   n->total_cpu_cycles += cpu_cycles;
 }
 
+void HACK_cpu_tick(NES* n) {
+  // mock cpu timing by cycle
+  if (n->cpu_cycles_remaining == 0) {
+    if (n->ppu.nmi_pending) {
+      n->ppu.nmi_pending = 0;
+      n->cpu_cycles_remaining = cpu6502_nmi(&n->cpu);
+    } else {
+      n->cpu_cycles_remaining = cpu6502_step(&n->cpu);
+    }
+  }
+
+  n->cpu_cycles_remaining--;
+}
+
+void nex_tick(NES* n) {
+  HACK_cpu_tick(n);
+
+  for (int i = 0; i < 3; i++) {
+    ppu_step(&n->ppu);
+  }
+
+  if (n->ppu.frame_ready) {
+    n->ppu.frame_ready = false;
+
+    // convert PPU color indices into a framebuffer
+    // execute framebuffer callback
+  }
+
+  n->total_cpu_cycles++;
+}
+
 int nex_step(NES* n) {
   int cpu_cycles;
 

@@ -243,8 +243,8 @@ int app_run(App& app) {
       cycle_accumulator += dt * NEX_CPU_HZ;
 
       while (cycle_accumulator >= 1.0) {
-        int cpu_cycles = nex_step(app.emulator.nes);
-        cycle_accumulator -= cpu_cycles;
+        nex_tick(app.emulator.nes);
+        cycle_accumulator--;
       }
     } else {
       cycle_accumulator = 0.0;
