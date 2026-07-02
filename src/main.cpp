@@ -30,6 +30,7 @@ struct AppActions {
   void (*load_rom)(void* ctx, const char* path);
   void (*reset)(void* ctx);
   void (*step_instr)(void* ctx);
+  void (*step_scanline)(void* ctx);
 
   void* ctx;
 };
@@ -39,6 +40,7 @@ struct UiState {
 
   bool cpu_pane_visible = false;
   bool memory_pane_visible = false;
+  bool ppu_pane_visible = false;
 
   bool is_running = false;
   bool is_rom_loaded = false;
@@ -69,6 +71,7 @@ struct App {
 void show_ui(UiContext& ui);
 void show_menu_bar(UiContext& ui);
 void show_cpu_pane(UiContext& ui);
+void show_ppu_pane(UiContext& ui);
 void show_memory_pane(UiContext& ui);
 void update_window_title(App* app, const char* rom_path);
 
@@ -114,6 +117,12 @@ void app_step_instr(void* ctx) {
   nex_step(app->emulator.nes);
 }
 
+void app_step_scanline(void* ctx) {
+  App* app = (App*)ctx;
+
+  nex_step_scanline(app->emulator.nes);
+}
+
 void glfw_error_callback(int error, const char* description) {
   fprintf(stderr, "GLFW Error %d: %s\n", error, description);
 }
@@ -156,6 +165,7 @@ int actions_init(App& app) {
       .reset = app_reset_emulator,
 
       .step_instr = app_step_instr,
+      .step_scanline = app_step_scanline,
 
       .ctx = &app,
   };
@@ -350,6 +360,10 @@ void handle_shortcuts(UiContext& ui) {
     ui.state.cpu_pane_visible = !ui.state.cpu_pane_visible;
   }
 
+  if (shift && mod && ImGui::IsKeyPressed(ImGuiKey_P)) {
+    ui.state.ppu_pane_visible = !ui.state.ppu_pane_visible;
+  }
+
   if (shift && mod && ImGui::IsKeyPressed(ImGuiKey_M)) {
     ui.state.memory_pane_visible = !ui.state.memory_pane_visible;
   }
@@ -363,6 +377,10 @@ void handle_shortcuts(UiContext& ui) {
     ui.state.is_running = !ui.state.is_running;
   }
 
+  if (ImGui::IsKeyPressed(ImGuiKey_F10)) {
+    ui.actions->step_scanline(ui.actions->ctx);
+  }
+
   if (ImGui::IsKeyPressed(ImGuiKey_F11)) {
     ui.actions->step_instr(ui.actions->ctx);
   }
@@ -374,6 +392,10 @@ void show_ui(UiContext& ui) {
 
   if (ui.state.cpu_pane_visible) {
     show_cpu_pane(ui);
+  }
+
+  if (ui.state.ppu_pane_visible) {
+    show_ppu_pane(ui);
   }
 
   if (ui.state.memory_pane_visible) {
@@ -398,7 +420,8 @@ void show_menu_bar(UiContext& ui) {
     if (ImGui::BeginMenu("View")) {
       ImGui::MenuItem("CPU", "Shift+" PRIMARY_MOD "+C",
                       &ui.state.cpu_pane_visible);
-      ImGui::MenuItem("PPU", nullptr);
+      ImGui::MenuItem("PPU", "Shift+" PRIMARY_MOD "+P",
+                      &ui.state.ppu_pane_visible);
       ImGui::MenuItem("Memory", "Shift+" PRIMARY_MOD "+M",
                       &ui.state.memory_pane_visible);
       ImGui::EndMenu();
@@ -415,6 +438,9 @@ void show_menu_bar(UiContext& ui) {
 
       ImGui::Separator();
 
+      if (ImGui::MenuItem("Step Scanline", "F10")) {
+        ui.actions->step_scanline(ui.actions->ctx);
+      }
       if (ImGui::MenuItem("Step Instruction", "F11")) {
         ui.actions->step_instr(ui.actions->ctx);
       }
@@ -492,6 +518,50 @@ void show_cpu_pane(UiContext& ui) {
     ImGui::Text("%04X  %-8s %-3s %s", line.addr, bytes_str, line.mnemonic,
                 line.operand);
   }
+
+  ImGui::End();
+}
+
+void show_ppu_pane(UiContext& ui) {
+  if (!ImGui::Begin("PPU", &ui.state.ppu_pane_visible)) {
+    ImGui::End();
+    return;
+  }
+
+  NexPpuState state = nex_get_ppu_state(ui.emu->nes);
+
+  ImGui::Text("Frame:    %llu", state.frame);
+  ImGui::Text("Scanline: %d", state.scanline);
+  ImGui::Text("Dot:      %d", state.dot);
+
+  ImGui::SeparatorText("Registers");
+  if (ImGui::TreeNode("control", "Control: %02X", state.ctrl)) {
+    ImGui::Text("Sprite Size: %s", state.ctrl & (1 << 5) ? "8x16" : "8x8");
+    ImGui::Text("Vblank NMI: %s",
+                state.ctrl & (1 << 7) ? "Enabled" : "Disabled");
+
+    ImGui::TreePop();
+  }
+  if (ImGui::TreeNode("mask", "Mask: %02X", state.mask)) {
+    ImGui::Text("Greyscale: %d", state.mask & 1);
+    ImGui::Text("Background Rendering: %s",
+                state.mask & (1 << 2) ? "Enabled" : "Disabled");
+    ImGui::Text("Sprite Rendering: %s",
+                state.mask & (1 << 3) ? "Enabled" : "Disabled");
+
+    ImGui::TreePop();
+  }
+  if (ImGui::TreeNode("status", "Status: %02X", state.status)) {
+    ImGui::Text("Sprite Overflow: %s",
+                state.status & (1 << 5) ? "True" : "False");
+    ImGui::Text("Sprite 0 Hit:    %s",
+                state.status & (1 << 6) ? "True" : "False");
+    ImGui::Text("Vblank:          %s",
+                state.status & (1 << 7) ? "True" : "False");
+    ImGui::TreePop();
+  }
+
+  ImGui::Separator();
 
   ImGui::End();
 }

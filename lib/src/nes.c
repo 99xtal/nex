@@ -255,6 +255,17 @@ NexCpuState nex_get_cpu_state(NES* n) {
   };
 }
 
+NexPpuState nex_get_ppu_state(NES* n) {
+  return (NexPpuState){
+      .frame = n->ppu.frame,
+      .scanline = n->ppu.scanline,
+      .dot = n->ppu.dot,
+      .mask = n->ppu.mask,
+      .status = n->ppu.status,
+      .ctrl = n->ppu.ctrl,
+  };
+}
+
 bool nex_disassemble_at(NES* n, uint16_t addr, NexDisasmLine* out) {
   CPU6502DisasmLine line;
 
@@ -297,4 +308,12 @@ void nex_free(NES* n) {
 
   free(n->cartridge);
   free(n);
+}
+
+void nex_step_scanline(NES* n) {
+  int16_t current_scanline = n->ppu.scanline;
+
+  while (n->ppu.scanline == current_scanline) {
+    nex_tick(n);
+  }
 }

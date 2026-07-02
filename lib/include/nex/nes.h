@@ -33,7 +33,7 @@ typedef struct NexCpuState {
   uint8_t P;
   uint8_t SP;
 
-  // PPU statue
+  // PPU state
   int16_t scanline;
   uint16_t dot;
 
@@ -41,6 +41,18 @@ typedef struct NexCpuState {
 } NexCpuState;
 
 NexCpuState nex_get_cpu_state(NES* n);
+
+typedef struct NexPpuState {
+  uint64_t frame;
+  int16_t scanline;
+  uint16_t dot;
+
+  uint8_t ctrl;
+  uint8_t mask;
+  uint8_t status;
+} NexPpuState;
+
+NexPpuState nex_get_ppu_state(NES* n);
 
 typedef struct NexDisasmLine {
   uint16_t addr;
@@ -55,6 +67,8 @@ bool nex_disassemble_at(NES* n, uint16_t addr, NexDisasmLine* out);
 void nex_read_wram(const NES* n, uint8_t dst[NEX_WRAM_SIZE]);
 
 void nex_read_vram(const NES* n, uint8_t dst[NEX_VRAM_SIZE]);
+
+void nex_step_scanline(NES* n);
 
 #ifdef __cplusplus
 }
