@@ -98,6 +98,7 @@ void app_load_rom(void* ctx, const char* path) {
   nex_reset(app->emulator.nes);
 
   app->ui.state.is_rom_loaded = true;
+  app->ui.state.is_running = true;
   update_window_title(app, path);
 }
 
