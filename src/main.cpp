@@ -31,6 +31,7 @@ struct AppActions {
   void (*reset)(void* ctx);
   void (*step_instr)(void* ctx);
   void (*step_scanline)(void* ctx);
+  void (*step_frame)(void* ctx);
 
   void* ctx;
 };
@@ -123,6 +124,12 @@ void app_step_scanline(void* ctx) {
   nex_step_scanline(app->emulator.nes);
 }
 
+void app_step_frame(void* ctx) {
+  App* app = (App*)ctx;
+
+  nex_step_frame(app->emulator.nes);
+}
+
 void glfw_error_callback(int error, const char* description) {
   fprintf(stderr, "GLFW Error %d: %s\n", error, description);
 }
@@ -166,6 +173,7 @@ int actions_init(App& app) {
 
       .step_instr = app_step_instr,
       .step_scanline = app_step_scanline,
+      .step_frame = app_step_frame,
 
       .ctx = &app,
   };
@@ -377,6 +385,10 @@ void handle_shortcuts(UiContext& ui) {
     ui.state.is_running = !ui.state.is_running;
   }
 
+  if (ImGui::IsKeyPressed(ImGuiKey_F9)) {
+    ui.actions->step_frame(ui.actions->ctx);
+  }
+
   if (ImGui::IsKeyPressed(ImGuiKey_F10)) {
     ui.actions->step_scanline(ui.actions->ctx);
   }
@@ -438,6 +450,9 @@ void show_menu_bar(UiContext& ui) {
 
       ImGui::Separator();
 
+      if (ImGui::MenuItem("Step Frame", "F9")) {
+        ui.actions->step_frame(ui.actions->ctx);
+      }
       if (ImGui::MenuItem("Step Scanline", "F10")) {
         ui.actions->step_scanline(ui.actions->ctx);
       }

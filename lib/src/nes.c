@@ -317,3 +317,11 @@ void nex_step_scanline(NES* n) {
     nex_tick(n);
   }
 }
+
+void nex_step_frame(NES* n) {
+  uint64_t current_frame = n->ppu.frame;
+
+  while (n->ppu.frame == current_frame) {
+    nex_tick(n);
+  }
+}

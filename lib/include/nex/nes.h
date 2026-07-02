@@ -70,6 +70,8 @@ void nex_read_vram(const NES* n, uint8_t dst[NEX_VRAM_SIZE]);
 
 void nex_step_scanline(NES* n);
 
+void nex_step_frame(NES* n);
+
 #ifdef __cplusplus
 }
 #endif
