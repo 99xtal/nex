@@ -198,6 +198,14 @@ int nex_step(NES* n) {
     ppu_step(&n->ppu);
   }
 
+  if (n->ppu.nmi_delay > 0) {
+    n->ppu.nmi_delay--;
+
+    if (n->ppu.nmi_delay == 0) {
+      n->ppu.nmi_pending = true;
+    }
+  }
+
   if (n->ppu.frame_ready) {
     n->ppu.frame_ready = false;
 

@@ -24,6 +24,7 @@ typedef struct PPU {
   uint64_t frame;
   int nmi_pending;  // boolean for when NMI is queued by "enable Vblank NMI"
                     // control flag
+  int nmi_delay;  // When set, number of cycles to wait until triggering an NMI
 
   // BG data fetching pipeline state
   uint8_t bg_tile;     // Current nametable byte (pattern table index)
