@@ -166,7 +166,7 @@ void ppu_cpu_write(PPU* ppu, uint8_t reg, uint8_t value) {
 
       if (!nmi_was_enabled && nmi_now_enabled &&
           (ppu->status & PPUSTATUS_VBLANK)) {
-        ppu->nmi_delay = 2;
+        ppu->nmi_pending = 1;
       }
 
       break;
