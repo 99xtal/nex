@@ -70,14 +70,19 @@ target_compile_features(nex-app
         cxx_std_20
 )
 
-target_compile_options(nex-app
-    PRIVATE
-        -g
-        -O0
-        -Wall
-        -Wextra
-        -Wpedantic
-)
+if(MSVC)
+    target_compile_options(nex-app PRIVATE /W4)
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(nex-app
+        PRIVATE
+            -g
+            -O0
+            -Wall
+            -Wextra
+            -Wpedantic
+    )
+endif()
+
 
 set_target_properties(nex-app PROPERTIES
     OUTPUT_NAME nex

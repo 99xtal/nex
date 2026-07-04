@@ -2,7 +2,6 @@
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
 #include <stdio.h>
-#include <getopt.h>
 
 #include <iostream>
 
@@ -303,30 +302,13 @@ void app_destroy(App& app) {
 }
 
 int main(int argc, char* argv[]) {
-  int opt;
-  while ((opt = getopt(argc, argv, "vh")) != -1) {
-    switch (opt) {
-      case 'v':
-        printf("0.1.0\n");
-        return EXIT_SUCCESS;
-      case 'h':
-        usage(argv[0]);
-        return EXIT_SUCCESS;
-      default:
-        usage(argv[0]);
-        return EXIT_FAILURE;
-    }
-  }
-
-  int remaining = argc - optind;
-
-  if (remaining > 1) {
+  if (argc > 2) {
     fprintf(stderr, "error: expected at most one ROM file\n");
     usage(argv[0]);
     return EXIT_FAILURE;
   }
 
-  const char* rom_path = (remaining == 1) ? argv[optind] : NULL;
+  const char* rom_path = (argc == 2) ? argv[1] : NULL;
 
   App app{};
   if (app_init(app) != 0) {

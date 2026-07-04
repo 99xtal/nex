@@ -56,7 +56,7 @@ void ppu_init(PPU* ppu, PPUReadFn read, PPUWriteFn write, void* ctx) {
   return;
 }
 
-void ppu_reset(PPU* ppu __attribute((unused))) { return; }
+void ppu_reset(PPU* ppu) { return; }
 
 void ppu_step(PPU* ppu) {
   bool visible_scanline = ppu->scanline >= 0 && ppu->scanline <= 239;

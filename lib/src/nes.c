@@ -95,7 +95,7 @@ uint8_t nes_ppu_read(void* ctx, uint16_t addr) {
   return 0;
 }
 
-void nes_ppu_write(void* ctx, uint16_t addr, u_int8_t value) {
+void nes_ppu_write(void* ctx, uint16_t addr, uint8_t value) {
   NES* n = ctx;
 
   // CHROM addressing

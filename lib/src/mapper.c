@@ -36,7 +36,7 @@ uint8_t nrom_ppu_read(Mapper* m, uint16_t addr) {
   return 0;
 }
 
-void nrom_ppu_write(Mapper* m, u_int16_t addr, uint8_t value) {
+void nrom_ppu_write(Mapper* m, uint16_t addr, uint8_t value) {
   Cartridge* c = m->ctx;
 
   if (addr < 0x2000 && c->uses_chr_ram) {
