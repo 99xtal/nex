@@ -158,7 +158,9 @@ int nex_init(NES* n) {
     return -1;
   }
 
-  cpu6502_init(&n->cpu, CPU6502_VARIANT_RP2A03, nes_cpu_read, nes_cpu_write, n);
+  n->cpu =
+      cpu6502_create(CPU6502_VARIANT_RP2A03, nes_cpu_read, nes_cpu_write, n);
+
   ppu_init(&n->ppu, nes_ppu_read, nes_ppu_write, n);
 
   return 0;
@@ -169,36 +171,27 @@ int nex_load_rom(NES* n, const char* path) {
 }
 
 void nex_reset(NES* n) {
-  if (!n || !n->cartridge->prg_rom) {
+  if (!n || !n->cartridge->prg_rom || !n->cpu) {
     return;
   }
 
   ppu_reset(&n->ppu);
 
-  int cpu_cycles = cpu6502_reset(&n->cpu);
-  for (int i = 0; i < cpu_cycles * 3; i++) {
+  cpu6502_reset(n->cpu);
+  for (int i = 0; i < 3; i++) {
     ppu_step(&n->ppu);
   }
 
-  n->total_cpu_cycles += cpu_cycles;
-}
-
-void HACK_cpu_tick(NES* n) {
-  // mock cpu timing by cycle
-  if (n->cpu_cycles_remaining == 0) {
-    if (n->ppu.nmi_pending) {
-      n->ppu.nmi_pending = 0;
-      n->cpu_cycles_remaining = cpu6502_nmi(&n->cpu);
-    } else {
-      n->cpu_cycles_remaining = cpu6502_step(&n->cpu);
-    }
-  }
-
-  n->cpu_cycles_remaining--;
+  n->total_cpu_cycles++;
 }
 
 void nex_tick(NES* n) {
-  HACK_cpu_tick(n);
+  if (n->ppu.nmi_pending) {
+    n->ppu.nmi_pending = 0;
+    cpu6502_nmi(n->cpu);
+  } else {
+    cpu6502_tick(n->cpu);
+  }
 
   for (int i = 0; i < 3; i++) {
     ppu_step(&n->ppu);
@@ -219,9 +212,10 @@ int nex_step(NES* n) {
 
   if (n->ppu.nmi_pending) {
     n->ppu.nmi_pending = 0;
-    cpu_cycles = cpu6502_nmi(&n->cpu);
+    // Todo: fix this
+    cpu6502_nmi(n->cpu);
   } else {
-    cpu_cycles = cpu6502_step(&n->cpu);
+    cpu_cycles = cpu6502_step(n->cpu);
   }
 
   // PPU ticks 3 times for every CPU cycle
@@ -242,13 +236,15 @@ int nex_step(NES* n) {
 }
 
 NexCpuState nex_get_cpu_state(NES* n) {
+  CPU6502State cpu_state = cpu6502_get_state(n->cpu);
+
   return (NexCpuState){
-      .PC = n->cpu.PC,
-      .A = n->cpu.A,
-      .X = n->cpu.X,
-      .Y = n->cpu.Y,
-      .P = n->cpu.status,
-      .SP = n->cpu.SP,
+      .PC = cpu_state.PC,
+      .A = cpu_state.A,
+      .X = cpu_state.X,
+      .Y = cpu_state.Y,
+      .P = cpu_state.status,
+      .SP = cpu_state.SP,
       .scanline = n->ppu.scanline,
       .dot = n->ppu.dot,
       .total_cycles = n->total_cpu_cycles,
@@ -264,25 +260,6 @@ NexPpuState nex_get_ppu_state(NES* n) {
       .status = n->ppu.status,
       .ctrl = n->ppu.ctrl,
   };
-}
-
-bool nex_disassemble_at(NES* n, uint16_t addr, NexDisasmLine* out) {
-  CPU6502DisasmLine line;
-
-  if (!cpu6502_disasm_at(&n->cpu, addr, &line)) {
-    return false;
-  }
-
-  out->addr = line.addr;
-  out->bytes_count = line.bytes_count;
-  out->mnemonic = line.mnemonic;
-  snprintf(out->operand, sizeof(out->operand), "%s", line.operand);
-
-  for (uint8_t i = 0; i < line.bytes_count; i++) {
-    out->bytes[i] = line.bytes[i];
-  }
-
-  return true;
 }
 
 void nex_read_wram(const NES* n, uint8_t dst[NEX_WRAM_SIZE]) {
