@@ -54,16 +54,6 @@ typedef struct NexPpuState {
 
 NexPpuState nex_get_ppu_state(NES* n);
 
-typedef struct NexDisasmLine {
-  uint16_t addr;
-  uint8_t bytes[3];
-  size_t bytes_count;
-  char* mnemonic;
-  char operand[25];
-} NexDisasmLine;
-
-bool nex_disassemble_at(NES* n, uint16_t addr, NexDisasmLine* out);
-
 void nex_read_wram(const NES* n, uint8_t dst[NEX_WRAM_SIZE]);
 
 void nex_read_vram(const NES* n, uint8_t dst[NEX_VRAM_SIZE]);

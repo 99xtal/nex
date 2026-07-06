@@ -118,6 +118,8 @@ typedef struct PPU {
 
   uint8_t open_bus;
 
+  bool vbl_suppressed;
+
   // callbacks for PPU address-space reads/writes: $0000-$3FFF
   PPUReadFn read;
   PPUWriteFn write;

@@ -104,6 +104,13 @@ int cartridge_load_ines_v1(Cartridge* c, uint8_t* header, FILE* f) {
       mapper_nrom_init(&c->mapper, c);
       break;
     }
+    case 3: {
+      if (mapper_cnrom_init(&c->mapper, c) != 0) {
+        fclose(f);
+        return -1;
+      };
+      break;
+    }
     default: {
       fclose(f);
       return -1;

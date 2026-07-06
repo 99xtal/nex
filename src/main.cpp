@@ -522,25 +522,6 @@ void show_cpu_pane(UiContext& ui) {
     ImGui::EndDisabled();
   }
 
-  if (ui.state.is_rom_loaded) {
-    ImGui::SeparatorText("Disassembly");
-    NexDisasmLine line;
-    if (!nex_disassemble_at(ui.emu->nes, state.PC, &line)) {
-      // handle error
-    }
-
-    char bytes_str[10];
-    size_t pos = 0;
-
-    for (uint8_t i = 0; i < line.bytes_count; i++) {
-      pos += snprintf(bytes_str + pos, sizeof(bytes_str) - pos, "%02X ",
-                      line.bytes[i]);
-    }
-
-    ImGui::Text("%04X  %-8s %-3s %s", line.addr, bytes_str, line.mnemonic,
-                line.operand);
-  }
-
   ImGui::End();
 }
 

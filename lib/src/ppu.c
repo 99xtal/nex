@@ -102,11 +102,15 @@ void ppu_step(PPU* ppu) {
 
   // Vblank phase
   if (ppu->scanline == VBLANK_SCANLINE && ppu->dot == 1) {
-    ppu->frame_ready = true;
-    ppu->status |= PPUSTATUS_VBLANK;
-    if (ppu->ctrl & PPUCTRL_NMI_ENABLE) {
-      ppu->nmi_pending = 1;
+    if (!ppu->vbl_suppressed) {
+      ppu->frame_ready = true;
+      ppu->status |= PPUSTATUS_VBLANK;
+      if (ppu->ctrl & PPUCTRL_NMI_ENABLE) {
+        ppu->nmi_pending = 1;
+      }
     }
+
+    ppu->vbl_suppressed = false;
   }
 
   increment_scanline_position(ppu);
@@ -122,6 +126,10 @@ uint8_t ppu_cpu_read(PPU* ppu, uint8_t reg) {
 
       ppu->status &= ~PPUSTATUS_VBLANK;
       ppu->w = 0;
+
+      if (ppu->scanline == VBLANK_SCANLINE && ppu->dot == 1) {
+        ppu->vbl_suppressed = true;
+      }
       return result;
     }
     case 4: {
