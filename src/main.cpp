@@ -42,6 +42,8 @@ struct UiState {
   bool cpu_pane_visible = false;
   bool memory_pane_visible = false;
   bool ppu_pane_visible = false;
+  bool pt_viewer_visible = false;
+  int selected_pt = 0;
 
   bool is_running = false;
   bool is_rom_loaded = false;
@@ -74,6 +76,7 @@ void show_menu_bar(UiContext& ui);
 void show_cpu_pane(UiContext& ui);
 void show_ppu_pane(UiContext& ui);
 void show_memory_pane(UiContext& ui);
+void show_pt_viewer(UiContext& ui);
 void update_window_title(App* app, const char* rom_path);
 
 void usage(const char* prog) {
@@ -413,6 +416,10 @@ void show_ui(UiContext& ui) {
   if (ui.state.memory_pane_visible) {
     show_memory_pane(ui);
   }
+
+  if (ui.state.pt_viewer_visible) {
+    show_pt_viewer(ui);
+  }
 }
 
 void show_menu_bar(UiContext& ui) {
@@ -576,7 +583,25 @@ void show_ppu_pane(UiContext& ui) {
     ImGui::TreePop();
   }
 
-  ImGui::Separator();
+  ImGui::SeparatorText("Pattern Tables");
+
+  if (!ui.state.is_rom_loaded) {
+    ImGui::BeginDisabled(true);
+  }
+
+  if (ImGui::Button("1")) {
+    ui.state.pt_viewer_visible = true;
+    ui.state.selected_pt = 1;
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("2")) {
+    ui.state.pt_viewer_visible = true;
+    ui.state.selected_pt = 2;
+  }
+
+  if (!ui.state.is_rom_loaded) {
+    ImGui::EndDisabled();
+  }
 
   ImGui::End();
 }
@@ -604,6 +629,34 @@ void show_memory_pane(UiContext& ui) {
       ImGui::EndTabItem();
     }
     if (ImGui::BeginTabItem("CHR ROM")) {
+      ImGui::EndTabItem();
+    }
+    ImGui::EndTabBar();
+  }
+
+  ImGui::End();
+}
+
+void show_pt_viewer(UiContext& ui) {
+  if (!ImGui::Begin(
+          ui.state.selected_pt == 1 ? "Pattern Table 1" : "Pattern Table 2",
+          &ui.state.pt_viewer_visible)) {
+    ImGui::End();
+    return;
+  }
+
+  ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
+  if (ImGui::BeginTabBar("Palettes", tab_bar_flags)) {
+    if (ImGui::BeginTabItem("Palette 1")) {
+      ImGui::EndTabItem();
+    }
+    if (ImGui::BeginTabItem("Palette 2")) {
+      ImGui::EndTabItem();
+    }
+    if (ImGui::BeginTabItem("Palette 3")) {
+      ImGui::EndTabItem();
+    }
+    if (ImGui::BeginTabItem("Palette 4")) {
       ImGui::EndTabItem();
     }
     ImGui::EndTabBar();
