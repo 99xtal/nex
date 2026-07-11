@@ -112,6 +112,8 @@ int cartridge_load_ines_v1(Cartridge* c, uint8_t* header, FILE* f) {
       break;
     }
     default: {
+      // TODO: remove this debug log
+      fprintf(stderr, "File Format: iNES 1.0\nMapper: %d\n", c->mapper_num);
       fclose(f);
       return -1;
     }
